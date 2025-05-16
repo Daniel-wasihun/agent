@@ -1,0 +1,4 @@
+pest_repo*
+.env
+logs/
+__pycache__

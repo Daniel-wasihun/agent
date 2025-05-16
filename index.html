@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pest Identification Chat</title>
+    <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.7.7/dist/axios.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        #chat-container {
+            max-height: calc(100vh - 200px);
+        }
+        .chat-message {
+            max-width: 80%;
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .message-content {
+            font-size: 1.05rem;
+            line-height: 1.9;
+            color: #2d3748;
+            word-wrap: break-word;
+            max-width: 100%;
+            padding: 0.75rem;
+            white-space: pre-wrap;
+        }
+        .message-content pre {
+            font-family: 'Inter', sans-serif;
+            white-space: pre-wrap;
+            margin: 0;
+        }
+        .message-content .bold {
+            font-weight: bold;
+            font-size: 1.15rem;
+        }
+        .error-message {
+            color: #e53e3e;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const API_URL = 'http://localhost:8000/identify-pest';
+        const Message = ({ sender, content, isError }) => {
+            const formatContent = (text) => {
+                return text.replace(/\*\*(.*?)\*\*/g, '<span class="bold">$1</span>');
+            };
+            const sanitizedContent = DOMPurify.sanitize(formatContent(content));
+            return (
+                <div className={`chat-message mb-4 ${sender === 'user' ? 'ml-auto' : 'mr-auto'}`}>
+                    <div className={`rounded-lg p-4 ${sender === 'user' ? 'bg-blue-600 text-white' : isError ? 'bg-red-100 text-red-800' : 'bg-white text-gray-800 shadow-md'}`}>
+                        <div className="message-content">
+                            {sender === 'bot' && !isError ? (
+                                <pre dangerouslySetInnerHTML={{ __html: sanitizedContent }} />
+                            ) : (
+                                <p>{sanitizedContent}</p>
+                            )}
+                        </div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">{sender === 'user' ? 'You' : 'Pest Identifier'} • {new Date().toLocaleTimeString()}</p>
+                </div>
+            );
+        };
+        const Chat = () => {
+            const [messages, setMessages] = React.useState([]);
+            const [input, setInput] = React.useState('');
+            const [isLoading, setIsLoading] = React.useState(false);
+            const [error, setError] = React.useState('');
+            const chatEndRef = React.useRef(null);
+            React.useEffect(() => {
+                chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, [messages]);
+            const handleSend = async () => {
+                if (!input.trim()) {
+                    setError('Please enter a description');
+                    return;
+                }
+                setError('');
+                const userMessage = { sender: 'user', content: input, isError: false };
+                setMessages([...messages, userMessage]);
+                setInput('');
+                setIsLoading(true);
+                try {
+                    console.log('Sending payload:', { description: input });
+                    const response = await axios.post(API_URL, { description: input });
+                    console.log('Received response:', response.data);
+                    const { pest, report } = response.data;
+                    const botMessage = {
+                        sender: 'bot',
+                        content: report,
+                        isError: false
+                    };
+                    setMessages(prev => [...prev, botMessage]);
+                } catch (error) {
+                    console.error('API error:', error.response?.data);
+                    const errorMessage = {
+                        sender: 'bot',
+                        content: `Error: ${error.response?.data?.detail || 'Failed to identify pest. Please try again.'}`,
+                        isError: true
+                    };
+                    setMessages(prev => [...prev, errorMessage]);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+            const handleKeyPress = (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                }
+            };
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-gray-100">
+                    <div className="w-full max-w-2xl bg-white rounded-xl shadow-xl p-6">
+                        <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">Pest Identification Chat</h1>
+                        <div id="chat-container" className="h-[500px] overflow-y-auto mb-4 p-4 bg-gray-50 rounded-lg">
+                            {messages.length === 0 && (
+                                <p className="text-gray-500 text-center">Start by describing pest symptoms...</p>
+                            )}
+                            {messages.map((msg, index) => (
+                                <Message key={index} {...msg} />
+                            ))}
+                            <div ref={chatEndRef} />
+                        </div>
+                        <div className="flex gap-2">
+                            <textarea
+                                className="flex-1 p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyPress={handleKeyPress}
+                                placeholder="Describe the pest symptoms (e.g., yellowing leaves, sticky residue)..."
+                                rows="3"
+                                disabled={isLoading}
+                            />
+                            <button
+                                className={`px-4 py-2 rounded-lg text-white ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+                                onClick={handleSend}
+                                disabled={isLoading}
+                            >
+                                {isLoading ? 'Processing...' : 'Send'}
+                            </button>
+                        </div>
+                        {error && <p className="error-message">{error}</p>}
+                    </div>
+                </div>
+            );
+        };
+        ReactDOM.render(<Chat />, document.getElementById('root'));
+    </script>
+</body>
+</html>
