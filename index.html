@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Pest Identification Chat Interface">
     <title>Pest Identification Chat</title>
     <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
@@ -14,9 +15,26 @@
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+        .card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
         #chat-container {
-            max-height: calc(100vh - 200px);
+            flex-grow: 1;
+            min-height: 150px;
+            scroll-behavior: smooth;
+            overflow-y: auto;
         }
         .chat-message {
             max-width: 80%;
@@ -27,12 +45,12 @@
             to { opacity: 1; transform: translateY(0); }
         }
         .message-content {
-            font-size: 1.05rem;
-            line-height: 1.9;
+            font-size: 0.95rem;
+            line-height: 1.5;
             color: #2d3748;
             word-wrap: break-word;
             max-width: 100%;
-            padding: 0.75rem;
+            padding: 0.5rem;
             white-space: pre-wrap;
         }
         .message-content pre {
@@ -42,12 +60,25 @@
         }
         .message-content .bold {
             font-weight: bold;
-            font-size: 1.15rem;
+            font-size: 1rem;
         }
         .error-message {
             color: #e53e3e;
-            font-size: 0.875rem;
-            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
+        .retry-button {
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        .retry-button:hover {
+            background-color: #2563eb;
+            transform: translateY(-1px);
+        }
+        .retry-button:active {
+            transform: translateY(0);
+        }
+        textarea {
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
     </style>
 </head>
@@ -55,14 +86,15 @@
     <div id="root"></div>
     <script type="text/babel">
         const API_URL = 'http://localhost:8000/identify-pest';
-        const Message = ({ sender, content, isError }) => {
+        const MAX_MESSAGE_LENGTH = 500;
+        const Message = ({ sender, content, isError, onRetry }) => {
             const formatContent = (text) => {
                 return text.replace(/\*\*(.*?)\*\*/g, '<span class="bold">$1</span>');
             };
             const sanitizedContent = DOMPurify.sanitize(formatContent(content));
             return (
-                <div className={`chat-message mb-4 ${sender === 'user' ? 'ml-auto' : 'mr-auto'}`}>
-                    <div className={`rounded-lg p-4 ${sender === 'user' ? 'bg-blue-600 text-white' : isError ? 'bg-red-100 text-red-800' : 'bg-white text-gray-800 shadow-md'}`}>
+                <div className={`chat-message mb-3 ${sender === 'user' ? 'ml-auto' : 'mr-auto'}`}>
+                    <div className={`rounded-lg p-3 ${sender === 'user' ? 'bg-blue-600 text-white' : isError ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
                         <div className="message-content">
                             {sender === 'bot' && !isError ? (
                                 <pre dangerouslySetInnerHTML={{ __html: sanitizedContent }} />
@@ -70,6 +102,15 @@
                                 <p>{sanitizedContent}</p>
                             )}
                         </div>
+                        {isError && onRetry && (
+                            <button
+                                onClick={onRetry}
+                                className="retry-button mt-2 px-2 py-1 bg-blue-600 text-white rounded-md text-xs hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                                aria-label="Retry sending message"
+                            >
+                                Retry
+                            </button>
+                        )}
                     </div>
                     <p className="text-xs text-gray-500 mt-1">{sender === 'user' ? 'You' : 'Pest Identifier'} • {new Date().toLocaleTimeString()}</p>
                 </div>
@@ -80,24 +121,39 @@
             const [input, setInput] = React.useState('');
             const [isLoading, setIsLoading] = React.useState(false);
             const [error, setError] = React.useState('');
+            const [charCount, setCharCount] = React.useState(0);
             const chatEndRef = React.useRef(null);
+            const textareaRef = React.useRef(null);
             React.useEffect(() => {
                 chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
             }, [messages]);
-            const handleSend = async () => {
-                if (!input.trim()) {
-                    setError('Please enter a description');
+            React.useEffect(() => {
+                textareaRef.current?.focus();
+            }, []);
+            const validateInput = (text) => {
+                if (!text.trim()) return 'Please enter a description';
+                if (text.length > MAX_MESSAGE_LENGTH) return `Description must be less than ${MAX_MESSAGE_LENGTH} characters`;
+                if (/[<>{}]/.test(text)) return 'Invalid characters detected';
+                return '';
+            };
+            const sendMessage = async (messageContent) => {
+                const validationError = validateInput(messageContent);
+                if (validationError) {
+                    setError(validationError);
                     return;
                 }
                 setError('');
-                const userMessage = { sender: 'user', content: input, isError: false };
-                setMessages([...messages, userMessage]);
-                setInput('');
+                const userMessage = { sender: 'user', content: messageContent, isError: false };
+                setMessages(prev => [...prev, userMessage]);
                 setIsLoading(true);
                 try {
-                    console.log('Sending payload:', { description: input });
-                    const response = await axios.post(API_URL, { description: input });
-                    console.log('Received response:', response.data);
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 30000);
+                    const response = await axios.post(API_URL, { description: messageContent }, {
+                        signal: controller.signal,
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    clearTimeout(timeoutId);
                     const { pest, report } = response.data;
                     const botMessage = {
                         sender: 'bot',
@@ -106,16 +162,24 @@
                     };
                     setMessages(prev => [...prev, botMessage]);
                 } catch (error) {
-                    console.error('API error:', error.response?.data);
                     const errorMessage = {
                         sender: 'bot',
-                        content: `Error: ${error.response?.data?.detail || 'Failed to identify pest. Please try again.'}`,
-                        isError: true
+                        content: `Error: ${error.response?.data?.detail || error.message || 'Failed to identify pest. Please try again.'}`,
+                        isError: true,
+                        retryContent: messageContent
                     };
                     setMessages(prev => [...prev, errorMessage]);
                 } finally {
                     setIsLoading(false);
                 }
+            };
+            const handleSend = () => {
+                sendMessage(input);
+                setInput('');
+                setCharCount(0);
+            };
+            const handleRetry = (retryContent) => {
+                sendMessage(retryContent);
             };
             const handleKeyPress = (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -123,38 +187,77 @@
                     handleSend();
                 }
             };
+            const handleInputChange = (e) => {
+                const value = e.target.value;
+                setInput(value);
+                setCharCount(value.length);
+            };
             return (
-                <div className="min-h-screen flex items-center justify-center bg-gray-100">
-                    <div className="w-full max-w-2xl bg-white rounded-xl shadow-xl p-6">
-                        <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">Pest Identification Chat</h1>
-                        <div id="chat-container" className="h-[500px] overflow-y-auto mb-4 p-4 bg-gray-50 rounded-lg">
+                <div className="w-full max-w-2xl mx-auto min-h-screen flex items-start py-4">
+                    <div className="card w-full">
+                        <h1 className="text-xl font-semibold text-gray-800 pt-3 px-4 mb-2 text-center" role="heading" aria-level="1">
+                            Pest Identification Chat
+                        </h1>
+                        <div
+                            id="chat-container"
+                            className="mx-4 mb-4 p-3 bg-gray-50 rounded-lg"
+                            role="log"
+                            aria-live="polite"
+                        >
                             {messages.length === 0 && (
-                                <p className="text-gray-500 text-center">Start by describing pest symptoms...</p>
+                                <p className="text-gray-500 text-sm text-center">Describe pest symptoms to start...</p>
                             )}
                             {messages.map((msg, index) => (
-                                <Message key={index} {...msg} />
+                                <Message
+                                    key={index}
+                                    {...msg}
+                                    onRetry={msg.isError && msg.retryContent ? () => handleRetry(msg.retryContent) : null}
+                                />
                             ))}
                             <div ref={chatEndRef} />
                         </div>
-                        <div className="flex gap-2">
-                            <textarea
-                                className="flex-1 p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                onKeyPress={handleKeyPress}
-                                placeholder="Describe the pest symptoms (e.g., yellowing leaves, sticky residue)..."
-                                rows="3"
-                                disabled={isLoading}
-                            />
+                        <div className="flex gap-2 px-4 pb-4">
+                            <div className="relative flex-1">
+                                <textarea
+                                    ref={textareaRef}
+                                    className="w-full p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none disabled:opacity-50 text-sm"
+                                    value={input}
+                                    onChange={handleInputChange}
+                                    onKeyPress={handleKeyPress}
+                                    placeholder="Describe pest symptoms..."
+                                    rows="1"
+                                    disabled={isLoading}
+                                    aria-label="Pest description input"
+                                    maxLength={MAX_MESSAGE_LENGTH}
+                                />
+                                <span className={`absolute bottom-1 right-2 text-xs ${charCount > MAX_MESSAGE_LENGTH * 0.9 ? 'text-red-500' : 'text-gray-400'}`}>
+                                    {charCount}/{MAX_MESSAGE_LENGTH}
+                                </span>
+                            </div>
                             <button
-                                className={`px-4 py-2 rounded-lg text-white ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+                                className={`px-3 py-1 rounded-lg text-white text-sm ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'}`}
                                 onClick={handleSend}
                                 disabled={isLoading}
+                                aria-label={isLoading ? 'Processing' : 'Send message'}
                             >
-                                {isLoading ? 'Processing...' : 'Send'}
+                                {isLoading ? (
+                                    <span className="flex items-center">
+                                        <svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                                        </svg>
+                                        Sending...
+                                    </span>
+                                ) : (
+                                    'Send'
+                                )}
                             </button>
                         </div>
-                        {error && <p className="error-message">{error}</p>}
+                        {error && (
+                            <p className="error-message px-4 pb-2" role="alert">
+                                {error}
+                            </p>
+                        )}
                     </div>
                 </div>
             );

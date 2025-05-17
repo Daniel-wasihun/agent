@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
 os.makedirs("logs", exist_ok=True)
 logging.basicConfig(
     filename="logs/pest_identification.log",
@@ -17,9 +18,10 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S"
 )
 logger = logging.getLogger(__name__)
+
 app = FastAPI(
     title="Pest Identification API",
-    description="API for identifying agricultural pests.",
+    description="API for identifying agricultural pests with AI and knowledge base.",
     version="1.0.0"
 )
 app.add_middleware(
@@ -29,13 +31,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"]
 )
+
 class PestDescription(BaseModel):
     description: str
+
 class PestResponse(BaseModel):
     pest: str
     report: str
     gemini_result: str
     text_result: Dict[str, List[str]]
+
 class Config:
     def __init__(self):
         load_dotenv()
@@ -45,6 +50,7 @@ class Config:
         if not self.gemini_api_key:
             logger.error("Missing GEMINI_API_KEY")
             raise ValueError("GEMINI_API_KEY required")
+
 class TextAnalysisTool:
     def __init__(self):
         self.keyword_map = {
@@ -60,7 +66,7 @@ class TextAnalysisTool:
             "frass": ["fall_armyworm", "corn_earworm", "cabbage_looper", "stem_borer", "armyworm"],
             "tunneling": ["stem_borer", "wireworm"],
             "bronzing": ["thrips", "spider_mite"],
-            "defoliation": ["colorado_potato_beetle", "armyworm", "fall_armyworm"],
+            "defoliation": ["colorado_potato_be PERFECTLY FORMATTED JSON OBJECT RETURNED FROM API CALLS beetle", "armyworm", "fall_armyworm"],
             "stippling": ["spider_mite", "thrips", "leafhopper"],
             "galls": ["scale_insect"],
             "rotting fruit": ["fruit_fly"],
@@ -72,9 +78,10 @@ class TextAnalysisTool:
             "deformed fruit": ["tarnished_plant_bug"],
             "cut stems": ["cutworm"],
             "damaging": ["fall_armyworm", "cutworm", "corn_earworm", "colorado_potato_beetle", "armyworm"],
-            "eating": ["fall_armyworm", "cutworm", "corn_earworm", "colorado_potato_beetle", "armyworm"]
+            "eating": ["fall_armyworm", "cutworm", "corn_earworm", "colorado_potato_beetle", "infestation"],
         }
         logger.info("TextAnalysisTool initialized")
+
     def analyze(self, description: str) -> Dict[str, List[str]]:
         try:
             if not isinstance(description, str):
@@ -95,6 +102,7 @@ class TextAnalysisTool:
         except Exception as e:
             logger.error(f"Text analysis error: {str(e)}")
             return {"error": f"Text analysis failed: {str(e)}"}
+
 class KnowledgeBase:
     def __init__(self, json_file: str):
         self.knowledge = {}
@@ -110,6 +118,7 @@ class KnowledgeBase:
         except Exception as e:
             logger.error(f"Knowledge base load error: {str(e)}")
             raise
+
     def search(self, query: str) -> Dict[str, any]:
         query = query.lower().strip()
         if not query:
@@ -120,6 +129,7 @@ class KnowledgeBase:
             return {query: self.knowledge[query]}
         logger.info(f"No match for {query}")
         return {}
+
 class AgroPestAgent:
     def __init__(self):
         self.config = Config()
@@ -132,13 +142,45 @@ class AgroPestAgent:
         except Exception as e:
             logger.error(f"Gemini API init error: {str(e)}")
             self.model = None
+
+    def validate_description(self, description: str) -> bool:
+        """
+ Ascertain whether the description is related to pests or agriculture using Gemini API.
+        Returns True if valid, False otherwise.
+        """
+        if not self.model:
+            logger.error("Gemini model not initialized")
+            return False
+
+        prompt = dedent(f"""
+            Determine if the following description is related to agricultural pests or agriculture:
+            Description: {description}
+            Respond with 'Valid' if the description is about pests or agriculture, or 'Invalid' otherwise.
+        """)
+        try:
+            response = self.model.generate_content(prompt)
+            result = response.text.strip()
+            logger.info(f"Description validation result: {result}")
+            return result == "Valid"
+        except Exception as e:
+            logger.error(f"Gemini validation error: {str(e)}")
+            return False
+
     def analyze(self, description: str) -> Dict[str, any]:
         try:
             logger.info(f"Analyzing description: {description}")
+            
+            # Validate description first
+            if not self.validate_description(description):
+                logger.warning("Invalid description provided")
+                return {"error": "Please provide a correct description about pests or agriculture"}
+
+            # Proceed with original analysis logic
             text_result = self.text_tool.analyze(description)
             if "error" in text_result:
                 logger.error(f"Text analysis failed: {text_result['error']}")
                 return {"error": text_result["error"]}
+            
             text_pests = text_result.get("pests", ["unknown"])
             gemini_result = "Unable to get AI response"
             if self.model:
@@ -154,6 +196,7 @@ class AgroPestAgent:
                     logger.info(f"Gemini response: {gemini_result[:100]}...")
                 except Exception as e:
                     logger.error(f"Gemini API error: {str(e)}")
+            
             likely_pest = text_pests[0]
             pest_data = self.knowledge_base.search(likely_pest).get(likely_pest, {})
             report = self.generate_report(
@@ -172,31 +215,32 @@ class AgroPestAgent:
         except Exception as e:
             logger.error(f"Analysis error: {str(e)}")
             return {"error": f"Analysis failed: {str(e)}"}
+
     def generate_report(self, likely_pest: str, text_pests: List[str], 
                        gemini_result: str, pest_data: Dict) -> str:
         control_measures = pest_data.get("control_measures", {})
         sections = [
-            "Pest Identification Report",
-            "Identified Pest",
-            f"Pest: {likely_pest}",
-            "Analysis Details",
-            f"Possible pests: {', '.join(text_pests)}",
-            f"AI Analysis: {gemini_result}",
-            "Pest Information",
-            f"Crops Affected: {', '.join(pest_data.get('crops', ['Unknown']))}",
-            f"Regions: {', '.join(pest_data.get('regions', ['Unknown']))}",
-            f"Symptoms: {', '.join(pest_data.get('symptoms', ['Unknown']))}",
-            f"Life Cycle: {pest_data.get('life_cycle', 'Unknown')}",
-            f"Economic Impact: {pest_data.get('economic_impact', 'Unknown')}",
-            "Environmental Conditions",
-            f"Temperature: {pest_data.get('environmental_conditions', {}).get('temperature', 'Unknown')}",
-            f"Humidity: {pest_data.get('environmental_conditions', {}).get('humidity', 'Unknown')}",
-            f"Soil Type: {pest_data.get('environmental_conditions', {}).get('soil_type', 'Unknown')}",
-            "Control Measures",
-            f"Chemical: {', '.join(control_measures.get('chemical', ['None']))}",
-            f"Biological: {', '.join(control_measures.get('biological', ['None']))}",
-            f"Cultural: {', '.join(control_measures.get('cultural', ['None']))}",
-            f"Generated on: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            "**Pest Identification Report**\n",
+            "**Identified Pest**\n",
+            f"**Pest**: {likely_pest}\n",
+            "**Analysis Details**\n",
+            f"**Possible Pests**: {', '.join(text_pests)}\n",
+            f"**AI Analysis**: {gemini_result}\n",
+            "**Pest Information**\n",
+            f"**Crops Affected**: {', '.join(pest_data.get('crops', ['Unknown']))}\n",
+            f"**Regions**: {', '.join(pest_data.get('regions', ['Unknown']))}\n",
+            f"**Symptoms**: {', '.join(pest_data.get('symptoms', ['Unknown']))}\n",
+            f"**Life Cycle**: {pest_data.get('life_cycle', 'Unknown')}\n",
+            f"**Economic Impact**: {pest_data.get('economic_impact', 'Unknown')}\n",
+            "**Environmental Conditions**\n",
+            f"**Temperature**: {pest_data.get('environmental_conditions', {}).get('temperature', 'Unknown')}\n",
+            f"**Humidity**: {pest_data.get('environmental_conditions', {}).get('humidity', 'Unknown')}\n",
+            f"**Soil Type**: {pest_data.get('environmental_conditions', {}).get('soil_type', 'Unknown')}\n",
+            "**Control Measures**\n",
+            f"**Chemical**: {', '.join(control_measures.get('chemical', ['None']))}\n",
+            f"**Biological**: {', '.join(control_measures.get('biological', ['None']))}\n",
+            f"**Cultural**: {', '.join(control_measures.get('cultural', ['None']))}\n",
+            f"**Generated on**: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
         ]
         wrapped_report = []
         for line in sections:
@@ -211,6 +255,7 @@ class AgroPestAgent:
         except Exception as e:
             logger.error(f"Report save error: {str(e)}")
         return report
+
 @app.post("/identify-pest", response_model=PestResponse)
 async def identify_pest(description: PestDescription):
     try:
@@ -224,6 +269,7 @@ async def identify_pest(description: PestDescription):
     except Exception as e:
         logger.error(f"API error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
