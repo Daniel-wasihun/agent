@@ -2,14 +2,32 @@ import os
 import json
 import logging
 from textwrap import dedent, wrap
-from typing import Dict, List
+from typing import Dict, List, Any
 import datetime
-import google.generativeai as genai
-from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from textblob import TextBlob, Word
+import nltk
+from nltk.tokenize import word_tokenize
+import re
 
+# Attempt to download required NLTK data
+def ensure_nltk_corpora():
+    corpora = ['punkt', 'wordnet', 'averaged_perceptron_tagger', 'brown', 'conll2000', 'movie_reviews', 'omw-1.4']
+    for corpus in corpora:
+        try:
+            nltk.data.find(f'tokenizers/{corpus}' if corpus == 'punkt' else f'corpora/{corpus}')
+        except LookupError:
+            logging.info(f"Downloading NLTK corpus: {corpus}")
+            nltk.download(corpus, quiet=True)
+
+try:
+    ensure_nltk_corpora()
+except Exception as e:
+    logging.error(f"Failed to download NLTK corpora: {str(e)}")
+
+# Setup logging
 os.makedirs("logs", exist_ok=True)
 logging.basicConfig(
     filename="logs/pest_identification.log",
@@ -19,70 +37,106 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Initialize FastAPI app
 app = FastAPI(
     title="Pest Identification API",
-    description="API for identifying agricultural pests with AI and knowledge base.",
-    version="1.0.0"
+    description="Expert system for identifying agricultural pests with TextBlob-based NLP analysis.",
+    version="1.2.2"
 )
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173", "*"],
+    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173", "http://localhost:8080", "*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]
 )
 
+# Pydantic models
 class PestDescription(BaseModel):
     description: str
 
 class PestResponse(BaseModel):
     pest: str
     report: str
-    gemini_result: str
-    text_result: Dict[str, List[str]]
+    text_result: Dict[str, List[Dict[str, Any]]]
 
 class Config:
     def __init__(self):
-        load_dotenv()
-        self.gemini_api_key = os.getenv("GEMINI_API_KEY")
-        self.gen_ai_model = os.getenv("GEN_AI_MODEL", "gemini-pro")
         self.knowledge_base_file = os.getenv("KNOWLEDGE_BASE_FILE", "pest_knowledge.json")
-        if not self.gemini_api_key:
-            logger.error("Missing GEMINI_API_KEY")
-            raise ValueError("GEMINI_API_KEY required")
+        if not os.path.exists(self.knowledge_base_file):
+            logger.error(f"Knowledge base file not found: {self.knowledge_base_file}")
+            raise FileNotFoundError(f"Knowledge base file not found: {self.knowledge_base_file}")
 
 class TextAnalysisTool:
-    def __init__(self):
-        self.keyword_map = {
-            "yellowing": ["aphid", "whitefly", "spider_mite", "leafhopper", "mealybug", "scale_insect"],
-            "sticky": ["aphid", "whitefly", "mealybug"],
-            "tiny white": ["whitefly"],
-            "chewed": ["fall_armyworm", "cutworm", "corn_earworm", "colorado_potato_beetle", "armyworm"],
-            "holes": ["fall_armyworm", "cabbage_looper", "diamondback_moth", "corn_earworm"],
-            "wilting": ["thrips", "wireworm", "stem_borer"],
-            "discoloration": ["spider_mite", "leafhopper", "green_stink_bug"],
-            "webbing": ["spider_mite", "diamondback_moth"],
-            "sooty mold": ["whitefly", "mealybug", "scale_insect"],
-            "frass": ["fall_armyworm", "corn_earworm", "cabbage_looper", "stem_borer", "armyworm"],
-            "tunneling": ["stem_borer", "wireworm"],
-            "bronzing": ["thrips", "spider_mite"],
-            "defoliation": ["colorado_potato_be PERFECTLY FORMATTED JSON OBJECT RETURNED FROM API CALLS beetle", "armyworm", "fall_armyworm"],
-            "stippling": ["spider_mite", "thrips", "leafhopper"],
-            "galls": ["scale_insect"],
-            "rotting fruit": ["fruit_fly"],
-            "boll damage": ["boll_weevil"],
-            "sap sucking": ["leafhopper", "green_stink_bug", "tarnished_plant_bug"],
-            "plant distortion": ["tarnished_plant_bug", "thrips"],
-            "punctured": ["fruit_fly", "boll_weevil"],
-            "white waxy": ["mealybug"],
-            "deformed fruit": ["tarnished_plant_bug"],
-            "cut stems": ["cutworm"],
-            "damaging": ["fall_armyworm", "cutworm", "corn_earworm", "colorado_potato_beetle", "armyworm"],
-            "eating": ["fall_armyworm", "cutworm", "corn_earworm", "colorado_potato_beetle", "infestation"],
-        }
-        logger.info("TextAnalysisTool initialized")
+    def __init__(self, knowledge_base: Dict):
+        self.knowledge_base = knowledge_base
+        try:
+            # Test TextBlob functionality
+            test_blob = TextBlob("test")
+            test_blob.words.lemmatize()
+            Word("test").synsets
+            logger.info("TextAnalysisTool initialized with TextBlob and NLTK")
+        except Exception as e:
+            logger.error(f"TextBlob initialization failed: {str(e)}")
+            raise RuntimeError(
+                "TextBlob initialization failed. Ensure NLTK corpora are installed by running:\n"
+                "python -m textblob.download_corpora\n"
+                f"Error: {str(e)}"
+            )
 
-    def analyze(self, description: str) -> Dict[str, List[str]]:
+    def _preprocess_text(self, text: str) -> List[str]:
+        """Tokenize, lemmatize, and clean the input text."""
+        try:
+            text = text.lower().strip()
+            text = re.sub(r'[^\w\s]', ' ', text)
+            blob = TextBlob(text)
+            tokens = blob.words.lemmatize()
+            return tokens
+        except Exception as e:
+            logger.error(f"Text preprocessing failed: {str(e)}")
+            raise RuntimeError(f"Text preprocessing failed: {str(e)}")
+
+    def _get_synonyms(self, word: str) -> List[str]:
+        """Get synonyms for a word using TextBlob's WordNet integration."""
+        try:
+            synonyms = set()
+            word_obj = Word(word.lower())
+            for synset in word_obj.synsets:
+                for lemma in synset.lemmas():
+                    synonyms.add(lemma.name().lower().replace('_', ' '))
+            return list(synonyms)
+        except Exception as e:
+            logger.error(f"Synonym lookup failed for '{word}': {str(e)}")
+            return []
+
+    def is_pest_related(self, description: str) -> bool:
+        """Check if the description is related to agricultural pests."""
+        try:
+            pest_keywords = set()
+            for pest, data in self.knowledge_base.items():
+                pest_keywords.update(data.get("symptoms", []))
+                pest_keywords.update(data.get("crops", []))
+                pest_keywords.add(pest.lower())
+            extended_keywords = set()
+            for keyword in pest_keywords:
+                extended_keywords.add(keyword.lower())
+                extended_keywords.update(self._get_synonyms(keyword))
+
+            tokens = self._preprocess_text(description)
+            return any(token in extended_keywords for token in tokens)
+        except Exception as e:
+            logger.error(f"Pest-related check failed: {str(e)}")
+            raise RuntimeError(f"Pest-related check failed: {str(e)}")
+
+    def get_hint(self) -> str:
+        """Provide a user-friendly hint for correcting the description."""
+        return dedent("""
+            Please provide a description related to agricultural pests, including specific symptoms or affected crops.
+            For example: "My tomato plants have yellowing leaves and sticky residue" or 
+            "I found holes in the leaves of my cabbage."
+        """).strip()
+
+    def analyze(self, description: str) -> Dict[str, List[Dict[str, Any]]]:
         try:
             if not isinstance(description, str):
                 logger.error("Description is not a string")
@@ -90,18 +144,84 @@ class TextAnalysisTool:
             if not description.strip():
                 logger.error("Description is empty")
                 return {"error": "Description cannot be empty"}
-            tokens = description.lower().split()
-            matched_pests = set()
-            for token in tokens:
-                for keyword, pests in self.keyword_map.items():
-                    if keyword in token or token in keyword:
-                        matched_pests.update(pests)
-            pests = list(matched_pests) if matched_pests else ["unknown"]
-            logger.info(f"Identified pests: {pests}")
-            return {"pests": pests}
+            if not self.is_pest_related(description):
+                logger.warning("Description is not pest-related")
+                return {"error": "Description does not appear to be related to agricultural pests.", "hint": self.get_hint()}
+
+            desc_tokens = self._preprocess_text(description)
+            desc_text = " ".join(desc_tokens)
+
+            pest_scores = []
+            for pest, data in self.knowledge_base.items():
+                score = 0
+                matches = {"symptoms": [], "crops": [], "conditions": []}
+
+                # Symptom matching (high weight)
+                symptoms = data.get("symptoms", [])
+                for symptom in symptoms:
+                    symptom_tokens = self._preprocess_text(symptom)
+                    symptom_text = " ".join(symptom_tokens)
+                    if symptom.lower() in description.lower() or any(t in desc_tokens for t in symptom_tokens):
+                        score += 2
+                        matches["symptoms"].append(symptom)
+                    # Check synonyms
+                    for syn in self._get_synonyms(symptom_text):
+                        if syn in desc_text:
+                            score += 1.5
+                            matches["symptoms"].append(f"{symptom} (via synonym: {syn})")
+
+                # Crop matching (medium weight)
+                crops = data.get("crops", [])
+                for crop in crops:
+                    if crop.lower() in desc_tokens:
+                        score += 1
+                        matches["crops"].append(crop)
+
+                # Environmental condition matching (low weight)
+                env_conditions = data.get("environmental_conditions", {})
+                for key, value in env_conditions.items():
+                    if isinstance(value, str) and value.lower() in desc_text:
+                        score += 0.5
+                        matches["conditions"].append(f"{key}: {value}")
+
+                # Boost score for pest name or synonyms
+                pest_synonyms = self._get_synonyms(pest)
+                if pest.lower() in desc_tokens or any(syn in desc_tokens for syn in pest_synonyms):
+                    score += 1.5
+                    matches["symptoms"].append(f"Pest name: {pest}")
+
+                # Adjust score based on symptom specificity
+                if len(matches["symptoms"]) > 1:
+                    score *= 1.2  # Bonus for multiple symptom matches
+                if len(matches["symptoms"]) == 0 and len(matches["crops"]) == 0:
+                    score = 0  # No relevant matches
+
+                if score > 0:
+                    pest_scores.append({
+                        "pest": pest,
+                        "score": score,
+                        "confidence": min(score / 10, 1.0),  # Normalize to 0-1
+                        "matches": matches
+                    })
+
+            if not pest_scores:
+                logger.info("No pests matched the description")
+                return {"error": "No pests matched the description.", "hint": self.get_hint()}
+
+            pest_scores.sort(key=lambda x: x["score"], reverse=True)
+            top_pests = [p for p in pest_scores if p["score"] >= pest_scores[0]["score"] * 0.7]
+            logger.info(f"Identified pests: {[p['pest'] for p in top_pests]}")
+            return {"pests": top_pests}
         except Exception as e:
             logger.error(f"Text analysis error: {str(e)}")
-            return {"error": f"Text analysis failed: {str(e)}"}
+            return {
+                "error": (
+                    f"Text analysis failed: {str(e)}\n"
+                    "This may be due to missing NLTK corpora. Please run:\n"
+                    "python -m textblob.download_corpora\n"
+                    "or check https://nltk.org/data.html for manual installation."
+                )
+            }
 
 class KnowledgeBase:
     def __init__(self, json_file: str):
@@ -109,7 +229,7 @@ class KnowledgeBase:
         json_path = os.path.abspath(json_file)
         try:
             if os.path.exists(json_path):
-                with open(json_path, "r") as f:
+                with open(json_path, "r", encoding='utf-8') as f:
                     self.knowledge = json.load(f)
                 logger.info(f"Loaded knowledge base from {json_path}")
             else:
@@ -119,7 +239,7 @@ class KnowledgeBase:
             logger.error(f"Knowledge base load error: {str(e)}")
             raise
 
-    def search(self, query: str) -> Dict[str, any]:
+    def search(self, query: str) -> Dict[str, Any]:
         query = query.lower().strip()
         if not query:
             logger.error("Empty query")
@@ -133,99 +253,50 @@ class KnowledgeBase:
 class AgroPestAgent:
     def __init__(self):
         self.config = Config()
-        self.text_tool = TextAnalysisTool()
         self.knowledge_base = KnowledgeBase(self.config.knowledge_base_file)
-        try:
-            genai.configure(api_key=self.config.gemini_api_key)
-            self.model = genai.GenerativeModel(self.config.gen_ai_model)
-            logger.info("AgroPestAgent initialized")
-        except Exception as e:
-            logger.error(f"Gemini API init error: {str(e)}")
-            self.model = None
+        self.text_tool = TextAnalysisTool(self.knowledge_base.knowledge)
+        logger.info("AgroPestAgent initialized")
 
-    def validate_description(self, description: str) -> bool:
-        """
- Ascertain whether the description is related to pests or agriculture using Gemini API.
-        Returns True if valid, False otherwise.
-        """
-        if not self.model:
-            logger.error("Gemini model not initialized")
-            return False
-
-        prompt = dedent(f"""
-            Determine if the following description is related to agricultural pests or agriculture:
-            Description: {description}
-            Respond with 'Valid' if the description is about pests or agriculture, or 'Invalid' otherwise.
-        """)
-        try:
-            response = self.model.generate_content(prompt)
-            result = response.text.strip()
-            logger.info(f"Description validation result: {result}")
-            return result == "Valid"
-        except Exception as e:
-            logger.error(f"Gemini validation error: {str(e)}")
-            return False
-
-    def analyze(self, description: str) -> Dict[str, any]:
+    def analyze(self, description: str) -> Dict[str, Any]:
         try:
             logger.info(f"Analyzing description: {description}")
-            
-            # Validate description first
-            if not self.validate_description(description):
-                logger.warning("Invalid description provided")
-                return {"error": "Please provide a correct description about pests or agriculture"}
-
-            # Proceed with original analysis logic
             text_result = self.text_tool.analyze(description)
             if "error" in text_result:
                 logger.error(f"Text analysis failed: {text_result['error']}")
-                return {"error": text_result["error"]}
-            
-            text_pests = text_result.get("pests", ["unknown"])
-            gemini_result = "Unable to get AI response"
-            if self.model:
-                prompt = dedent(f"""
-                    Analyze pest description:
-                    Description: {description}
-                    Possible pests: {', '.join(text_pests)}
-                    Provide a concise identification of the most likely pest and a brief explanation.
-                """)
-                try:
-                    response = self.model.generate_content(prompt)
-                    gemini_result = response.text
-                    logger.info(f"Gemini response: {gemini_result[:100]}...")
-                except Exception as e:
-                    logger.error(f"Gemini API error: {str(e)}")
-            
-            likely_pest = text_pests[0]
+                return text_result
+
+            top_pests = text_result.get("pests", [{"pest": "unknown", "confidence": 0}])
+            likely_pest = top_pests[0]["pest"]
             pest_data = self.knowledge_base.search(likely_pest).get(likely_pest, {})
             report = self.generate_report(
                 likely_pest=likely_pest,
-                text_pests=text_pests,
-                gemini_result=gemini_result,
+                text_pests=top_pests,
                 pest_data=pest_data
             )
             logger.info(f"Generated report for pest: {likely_pest}")
             return {
                 "pest": likely_pest,
                 "report": report,
-                "gemini_result": gemini_result,
                 "text_result": text_result
             }
         except Exception as e:
             logger.error(f"Analysis error: {str(e)}")
             return {"error": f"Analysis failed: {str(e)}"}
 
-    def generate_report(self, likely_pest: str, text_pests: List[str], 
-                       gemini_result: str, pest_data: Dict) -> str:
+    def generate_report(self, likely_pest: str, text_pests: List[Dict], pest_data: Dict) -> str:
         control_measures = pest_data.get("control_measures", {})
+        confidence = text_pests[0]["confidence"] if text_pests else 0
+        matched_indicators = []
+        for match_type in ["symptoms", "crops", "conditions"]:
+            matched_indicators.extend(text_pests[0]["matches"][match_type])
         sections = [
             "**Pest Identification Report**\n",
             "**Identified Pest**\n",
             f"**Pest**: {likely_pest}\n",
+            f"**Confidence**: {confidence:.2%}\n",
             "**Analysis Details**\n",
-            f"**Possible Pests**: {', '.join(text_pests)}\n",
-            f"**AI Analysis**: {gemini_result}\n",
+            f"**Possible Pests**: {', '.join(p['pest'] for p in text_pests)}\n",
+            f"**Matched Indicators**: {', '.join(matched_indicators) or 'None'}\n",
             "**Pest Information**\n",
             f"**Crops Affected**: {', '.join(pest_data.get('crops', ['Unknown']))}\n",
             f"**Regions**: {', '.join(pest_data.get('regions', ['Unknown']))}\n",
@@ -249,7 +320,7 @@ class AgroPestAgent:
         report = "\n".join(wrapped_report)
         report_path = f"pest_report_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
         try:
-            with open(report_path, "w") as f:
+            with open(report_path, "w", encoding='utf-8') as f:
                 f.write(report)
             logger.info(f"Report saved to {report_path}")
         except Exception as e:
@@ -264,7 +335,7 @@ async def identify_pest(description: PestDescription):
         result = agent.analyze(description.description)
         if "error" in result:
             logger.error(f"API error: {result['error']}")
-            raise HTTPException(status_code=400, detail=result["error"])
+            raise HTTPException(status_code=400, detail=result)
         return result
     except Exception as e:
         logger.error(f"API error: {str(e)}")

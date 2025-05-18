@@ -1,0 +1,3 @@
+ python -m textblob.download_corpora
+python -c "import textblob; import nltk; import fastapi; import uvicorn; import pydantic; print('All packages installed')"
+python -m nltk.downloader punkt wordnet averaged_perceptron_tagger
