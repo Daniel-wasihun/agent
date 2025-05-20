@@ -2,3 +2,6 @@ pest_repo*
 .env
 logs/
 __pycache__
+reports/
+results/
+pest_env/

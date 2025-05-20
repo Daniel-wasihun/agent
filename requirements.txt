@@ -8,3 +8,5 @@ python-Levenshtein
 pyyaml
 numpy
 autocorrect
+matplotlib
+

@@ -1,54 +1,406 @@
 import os
 import json
 import logging
-from textwrap import dedent, wrap
-from typing import Dict, List, Any
-import datetime
-import asyncio
+from logging.handlers import RotatingFileHandler
+import yaml
+import uuid
+import nltk
 import numpy as np
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, ValidationError
-from sentence_transformers import SentenceTransformer, util
-from textblob import TextBlob, Word
-import nltk
-import re
-from autocorrect import Speller
+from pydantic import BaseModel
+from typing import List, Dict, Optional
+from sentence_transformers import SentenceTransformer
+from textblob import TextBlob
 from rapidfuzz import fuzz
-from pathlib import Path
-import uuid
+import uvicorn
+import re
 
-# Download required NLTK data
-def ensure_nltk_corpora():
-    corpora = ['punkt', 'wordnet', 'averaged_perceptron_tagger', 'brown', 'conll2000', 'movie_reviews', 'omw-1.4']
-    for corpus in corpora:
-        try:
-            nltk.data.find(f'tokenizers/{corpus}' if corpus == 'punkt' else f'corpora/{corpus}')
-        except LookupError:
-            logging.info(f"Downloading NLTK corpus: {corpus}")
-            nltk.download(corpus, quiet=True)
+# Custom LogRecord to handle missing request_id
+class CustomLogRecord(logging.LogRecord):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.request_id = getattr(self, 'request_id', 'N/A')
 
+logging.setLogRecordFactory(CustomLogRecord)
+
+# Logging setup
+os.makedirs('logs', exist_ok=True)
+logger = logging.getLogger('PestIdentification')
+logger.setLevel(logging.INFO)
+handler = RotatingFileHandler('logs/pest_identification.log', maxBytes=1000000, backupCount=5)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - [%(request_id)s] - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
+# Download NLTK data
 try:
-    ensure_nltk_corpora()
-except Exception as e:
-    logging.error(f"Failed to download NLTK corpora: {str(e)}")
+    nltk.data.find('tokenizers/punkt')
+    nltk.data.find('corpora/wordnet')
+    nltk.data.find('taggers/averaged_perceptron_tagger')
+except LookupError:
+    nltk.download('punkt')
+    nltk.download('wordnet')
+    nltk.download('averaged_perceptron_tagger')
 
-# Setup logging
-os.makedirs("logs", exist_ok=True)
-logging.basicConfig(
-    filename="logs/pest_identification.log",
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S"
-)
-logger = logging.getLogger(__name__)
+# Load configuration
+with open('config.yaml', 'r') as f:
+    config = yaml.safe_load(f)
 
-# Initialize FastAPI app
-app = FastAPI(
-    title="Pest Identification API",
-    description="Advanced expert system for identifying agricultural pests with transformer-based NLP and fuzzy matching.",
-    version="2.4.0"
-)
+# Pest-related keywords for input validation
+PEST_KEYWORDS = [
+    "pest", "insect", "bug", "bugs", "mite", "worm", "caterpillar", "aphid", "whitefly", "mealybug", "spider mite",
+    "leaf", "leaves", "stem", "root", "fruit", "flower", "yellowing", "wilting", "sticky", "mold", "spots", "holes",
+    "crop", "plant", "tomato", "maize", "corn", "cotton", "cucumber", "pepper", "eggplant", "lettuce", "cabbage",
+    "damage", "infestation", "infested", "chewed", "control", "spray", "trap", "webbing", "honeydew", "stunted"
+]
+
+# Knowledge Base
+class KnowledgeBase:
+    def __init__(self, file_path: str):
+        self.file_path = file_path
+        self.data = self.load_knowledge()
+
+    def load_knowledge(self) -> Dict:
+        if not os.path.exists(self.file_path):
+            default_data = {
+                # "whitefly": {
+                #     "crops": ["tomato", "cotton", "cucumber", "pepper", "eggplant"],
+                #     "regions": ["tropical", "subtropical", "greenhouses"],
+                #     "symptoms": ["sticky leaves", "tiny white insects", "yellowing leaves", "sooty mold", "white bugs"],
+                #     "control_measures": {
+                #         "chemical": ["insecticidal soap (1% solution)", "pyriproxyfen (0.5 mL/L)"],
+                #         "biological": ["Encarsia formosa (5 wasps/m²)", "Eretmocerus spp."],
+                #         "cultural": ["yellow sticky traps (1 trap/10 m²)", "reflective mulch"]
+                #     },
+                #     "life_cycle": "Eggs hatch in 5-10 days, lifecycle completes in 20-30 days.",
+                #     "economic_impact": "Yield losses up to 50% in greenhouse crops.",
+                #     "environmental_conditions": {
+                #         "temperature": "20-30°C",
+                #         "humidity": "High",
+                #         "soil_type": "Well-drained"
+                #     },
+                #     "appearance": {
+                #         "color": ["white"],
+                #         "size": ["tiny", "1-2 mm"]
+                #     },
+                #     "synonyms": ["white fly", "Bemisia tabaci"],
+                #     "version": 1
+                # },
+                "aphid": {
+                    "crops": ["tomato", "lettuce", "cabbage", "beans", "maize"],
+                    "regions": ["temperate", "tropical"],
+                    "symptoms": ["curled leaves", "sticky honeydew", "stunted growth", "green or black insects", "leaf curl"],
+                    "control_measures": {
+                        "chemical": ["neem oil (2% solution)", "imidacloprid (0.3 mL/L)"],
+                        "biological": ["ladybugs (10 beetles/m²)", "lacewings"],
+                        "cultural": ["remove infested leaves", "use companion plants like marigolds"]
+                    },
+                    "life_cycle": "Reproduces every 7-10 days, multiple generations per season.",
+                    "economic_impact": "Can reduce yield by 20-40% if untreated.",
+                    "environmental_conditions": {
+                        "temperature": "15-25°C",
+                        "humidity": "Moderate",
+                        "soil_type": "Fertile"
+                    },
+                    "appearance": {
+                        "color": ["green", "black"],
+                        "size": ["small", "1-3 mm"]
+                    },
+                    "synonyms": ["plant lice", "Aphidoidea"],
+                    "version": 1
+                },
+                # "spider mite": {
+                #     "crops": ["tomato", "cucumber", "strawberry", "grapes"],
+                #     "regions": ["tropical", "subtropical", "arid"],
+                #     "symptoms": ["stippled leaves", "fine webbing", "yellowing leaves", "tiny red or yellow mites", "speckled leaves"],
+                #     "control_measures": {
+                #         "chemical": ["abamectin (0.15 mL/L)", "spiromesifen (0.5 mL/L)"],
+                #         "biological": ["Phytoseiulus persimilis (10 mites/m²)"],
+                #         "cultural": ["increase humidity", "regular leaf washing"]
+                #     },
+                #     "life_cycle": "Eggs hatch in 3-5 days, lifecycle completes in 10-20 days.",
+                #     "economic_impact": "Can cause 30-60% yield loss in severe infestations.",
+                #     "environmental_conditions": {
+                #         "temperature": "25-35°C",
+                #         "humidity": "Low",
+                #         "soil_type": "Well-drained"
+                #     },
+                #     "appearance": {
+                #         "color": ["red", "yellow"],
+                #         "size": ["tiny", "<1 mm"]
+                #     },
+                #     "synonyms": ["red spider mite", "Tetranychus urticae"],
+                #     "version": 1
+                # },
+                # "mealybug": {
+                #     "crops": ["grapes", "citrus", "tomato", "ornamentals"],
+                #     "regions": ["tropical", "subtropical", "greenhouses"],
+                #     "symptoms": ["white cottony masses", "sticky honeydew", "sooty mold", "stunted growth"],
+                #     "control_measures": {
+                #         "chemical": ["spirotetramat (0.5 mL/L)", "insecticidal soap (1% solution)"],
+                #         "biological": ["Cryptolaemus montrouzieri (5 beetles/m²)"],
+                #         "cultural": ["prune infested areas", "use water sprays to dislodge"]
+                #     },
+                #     "life_cycle": "Eggs hatch in 7-10 days, lifecycle completes in 30-40 days.",
+                #     "economic_impact": "Can cause 20-50% yield loss in severe cases.",
+                #     "environmental_conditions": {
+                #         "temperature": "20-30°C",
+                #         "humidity": "Moderate to high",
+                #         "soil_type": "Well-drained"
+                #     },
+                #     "appearance": {
+                #         "color": ["white", "cottony"],
+                #         "size": ["small", "2-4 mm"]
+                #     },
+                #     "synonyms": ["mealy bug", "Pseudococcidae"],
+                #     "version": 1
+                # }
+            }
+            with open(self.file_path, 'w') as f:
+                json.dump(default_data, f, indent=2)
+            return default_data
+        with open(self.file_path, 'r') as f:
+            return json.load(f)
+
+    def search(self, query: str) -> Dict:
+        logger.info(f"Searching knowledge base for: {query}")
+        for pest, data in self.data.items():
+            if fuzz.partial_ratio(query.lower(), pest.lower()) > 80:
+                logger.info(f"Found data for: {query}")
+                return {pest: data}
+        return {}
+
+    def get(self, pest: str) -> Dict:
+        return self.data.get(pest, {})
+
+# Text Analysis Tool
+class TextAnalysisTool:
+    def __init__(self, model_name: str):
+        self.model = SentenceTransformer(model_name)
+        self.knowledge_base = KnowledgeBase(config['knowledge_base_file'])
+        self.pest_reference = "Pests cause damage to crops with symptoms like yellowing leaves, sticky residue, holes, or insect presence."
+
+    def is_pest_related(self, description: str) -> bool:
+        """Check if the description is pest-related using keywords, semantic similarity, and symptom matching."""
+        description_lower = description.lower()
+        keyword_count = sum(keyword in description_lower for keyword in PEST_KEYWORDS)
+
+        # Single keyword or symptom match is sufficient
+        if keyword_count >= 1:
+            return True
+        
+        # Semantic similarity check
+        desc_embedding = self.model.encode(description)
+        ref_embedding = self.model.encode(self.pest_reference)
+        similarity = float(np.dot(desc_embedding, ref_embedding) / 
+                          (np.linalg.norm(desc_embedding) * np.linalg.norm(ref_embedding)))
+        
+        # Fuzzy symptom matching
+        blob = TextBlob(description_lower)
+        tokens = blob.words
+        for pest, data in self.knowledge_base.data.items():
+            symptoms = [s.lower() for s in data.get("symptoms", [])]
+            for token in tokens:
+                for symptom in symptoms:
+                    if fuzz.partial_ratio(token, symptom) > 85:  # Fuzzy match for symptoms
+                        return True
+        
+        return similarity > 0.65  # Lowered threshold for broader detection
+
+    async def analyze(self, description: str) -> Dict:
+        logger.info(f"Analyzing description: {description}")
+        if len(description) > config['max_description_length']:
+            raise ValueError(f"Description exceeds maximum length of {config['max_description_length']} characters.")
+        if not description.strip():
+            raise ValueError("Description cannot be empty.")
+
+        # Sanitize input
+        description = re.sub(r'[^\w\s.,-]', '', description)
+        description_lower = description.lower()  # Define description_lower for scoring
+        logger.debug(f"Sanitized description: {description}, lowercase: {description_lower}")
+
+        # Check if pest-related
+        if not self.is_pest_related(description):
+            logger.info(f"Non-pest-related input detected: {description}")
+            return {
+                "pests": [],
+                "likely_pest": None,
+                "user_guidance": [
+                    "This doesn't seem pest-related.",
+                    "Try describing issues like 'My tomato leaves have tiny white bugs.'",
+                    "Key details to include:",
+                    "- Symptoms (e.g., yellow leaves, holes, sticky residue)",
+                    "- Crops affected (e.g., tomato, maize)",
+                    "- Pest traits (e.g., color, size, flying)"
+                ]
+            }
+
+        blob = TextBlob(description_lower)
+        tokens = blob.words
+        symptoms = [token for token in tokens if any(symptom in token for symptom in [
+            "sticky", "yellowing", "mold", "tiny", "white", "curled", "stippled", "webbing", "honeydew", 
+            "stunted", "bugs", "insects", "mites", "holes", "chewed", "speckled"
+        ])]
+
+        pest_scores = []
+        for pest, data in self.knowledge_base.data.items():
+            # Combine symptoms, crops, and appearance for scoring
+            symptom_text = " ".join(data.get("symptoms", []) + data.get("crops", []) + 
+                                   [f"{k} {v}" for k, v in data.get("appearance", {}).items()])
+            symptom_embedding = self.model.encode(symptom_text)
+            description_embedding = self.model.encode(description)
+            similarity = float(np.dot(description_embedding, symptom_embedding) / 
+                             (np.linalg.norm(description_embedding) * np.linalg.norm(symptom_embedding)))
+            
+            # Fuzzy symptom match boost
+            pest_symptoms = [s.lower() for s in data.get("symptoms", [])]
+            symptom_score = 0
+            for token in tokens:
+                for symptom in pest_symptoms:
+                    if fuzz.partial_ratio(token, symptom) > 85:
+                        symptom_score += 0.1  # Boost for each match
+            
+            # Crop and appearance match boost
+            crop_score = 0.05 if any(crop in description_lower for crop in data.get("crops", [])) else 0
+            appearance_score = 0.05 if any(color in description_lower for color in data.get("appearance", {}).get("color", [])) else 0
+            
+            final_score = similarity + symptom_score + crop_score + appearance_score
+            if final_score > 0.5:  # Lowered threshold
+                pest_scores.append({"pest": pest, "confidence": final_score})
+
+        top_pests = sorted(pest_scores, key=lambda x: x["confidence"], reverse=True)[:3]
+        likely_pest = top_pests[0]["pest"] if top_pests else None
+
+        if not top_pests:
+            logger.info("No pests identified with sufficient confidence")
+            return {
+                "pests": [],
+                "likely_pest": None,
+                "user_guidance": [
+                    "Couldn't identify a pest. Please provide more details, e.g., 'My tomato leaves have tiny white bugs.'",
+                    "Key details to include:",
+                    "- Symptoms (e.g., yellow leaves, holes, sticky residue)",
+                    "- Crops affected (e.g., tomato, maize)",
+                    "- Pest traits (e.g., color, size, flying)"
+                ]
+            }
+
+        logger.info(f"Identified pests: {[p['pest'] for p in top_pests]}")
+
+        user_guidance = [
+            "For better accuracy, include details like:",
+            "- Symptoms (e.g., yellow leaves, holes, sticky residue)",
+            "- Crops affected (e.g., tomato, maize)",
+            "- Pest traits (e.g., color, size, flying)",
+            "Example: 'My tomato plants have yellowing leaves and tiny white bugs.'"
+        ]
+
+        return {
+            "pests": top_pests,
+            "likely_pest": likely_pest,
+            "user_guidance": user_guidance
+        }
+
+# AgroPestAgent
+class AgroPestAgent:
+    def __init__(self):
+        self.knowledge_base = KnowledgeBase(config['knowledge_base_file'])
+        self.text_tool = TextAnalysisTool(config['model_name'])
+        logger.info("AgroPestAgent initialized")
+
+    async def analyze(self, description: str) -> Dict:
+        logger.info(f"Analyzing description: {description}")
+        try:
+            text_result = await self.text_tool.analyze(description)
+            likely_pest = text_result.get("likely_pest")
+            if not likely_pest:
+                return {
+                    "pest": None,
+                    "report": "No pest identified or query is not pest-related.",
+                    "text_result": text_result,
+                    "chart": {},
+                    "user_guidance": text_result["user_guidance"]
+                }
+
+            pest_data = self.knowledge_base.search(likely_pest).get(likely_pest, {})
+            report = self.generate_report(description, likely_pest, pest_data, text_result)
+
+            chart = {
+                "type": "bar",
+                "data": {
+                    "labels": [p["pest"] for p in text_result["pests"]],
+                    "datasets": [{
+                        "label": "Confidence",
+                        "data": [p["confidence"] for p in text_result["pests"]],
+                        "backgroundColor": ["#4caf50", "#ff9800", "#f44336"],
+                        "borderColor": ["#388e3c", "#f57c00", "#d32f2f"],
+                        "borderWidth": 1
+                    }]
+                },
+                "options": {
+                    "scales": {
+                        "y": {
+                            "beginAtZero": True,
+                            "title": {"display": True, "text": "Confidence Score"}
+                        },
+                        "x": {
+                            "title": {"display": True, "text": "Pest"}
+                        }
+                    },
+                    "plugins": {
+                        "title": {"display": True, "text": "Pest Identification Confidence"}
+                    }
+                }
+            }
+
+            logger.info(f"Generated report for pest: {likely_pest}")
+            return {
+                "pest": likely_pest,
+                "report": report,
+                "text_result": text_result,
+                "chart": chart,
+                "user_guidance": text_result["user_guidance"]
+            }
+        except ValueError as e:
+            logger.error(f"Analysis failed: {str(e)}")
+            return {
+                "pest": None,
+                "report": str(e),
+                "text_result": {"pests": [], "likely_pest": None, "user_guidance": [str(e)]},
+                "chart": {},
+                "user_guidance": [str(e)]
+            }
+        except Exception as e:
+            logger.error(f"Unexpected error during analysis: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+    def generate_report(self, description: str, pest: str, pest_data: Dict, text_result: Dict) -> str:
+        os.makedirs('reports', exist_ok=True)
+        report_id = str(uuid.uuid4()).replace('-', '')
+        report_path = f'reports/pest_report_{report_id}.txt'
+
+        report = f"Pest Identification Report\n\n"
+        report += f"Identified Pest: {pest}\n"
+        report += f"Description: {description}\n"
+        report += f"Confidence: {text_result['pests'][0]['confidence']:.2f}\n\n"
+        report += "Details:\n"
+        for key, value in pest_data.items():
+            if isinstance(value, dict):
+                report += f"  {key.replace('_', ' ').title()}:\n"
+                for sub_key, sub_value in value.items():
+                    report += f"    - {sub_key.replace('_', ' ').title()}: {sub_value}\n"
+            else:
+                report += f"  {key.replace('_', ' ').title()}: {value}\n"
+
+        with open(report_path, 'w') as f:
+            f.write(report)
+        logger.info(f"Report saved to {report_path}")
+        return report
+
+# FastAPI App
+app = FastAPI()
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -57,614 +409,32 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-# Pydantic models
 class PestDescription(BaseModel):
     description: str
 
 class PestResponse(BaseModel):
-    pest: str
+    pest: Optional[str]
     report: str
-    text_result: Dict[str, List[Dict[str, Any]]]
-    chart: Dict[str, Any]
+    text_result: Dict
+    chart: Dict
+    user_guidance: List[str]
 
-class PestKnowledgeUpdate(BaseModel):
-    pest: str
-    symptoms: List[str]
-    crops: List[str]
-    regions: List[str]
-    life_cycle: str
-    economic_impact: str
-    environmental_conditions: Dict[str, str]
-    control_measures: Dict[str, List[str]]
-    appearance: Dict[str, List[str]]
-    synonyms: List[str]
-
-class Config:
-    def __init__(self):
-        self.knowledge_base_file = os.getenv("KNOWLEDGE_BASE_FILE", "pest_knowledge.json")
-        if not os.path.exists(self.knowledge_base_file):
-            logger.info(f"Creating default knowledge base at {self.knowledge_base_file}")
-            self.create_default_knowledge_base()
-
-    def create_default_knowledge_base(self):
-        default_knowledge = {
-            "whitefly": {
-                "crops": ["tomato", "cotton", "cucumber", "pepper", "eggplant", "sweet potato", "cassava"],
-                "regions": ["tropical", "subtropical", "greenhouses"],
-                "symptoms": ["sticky leaves", "tiny white insects", "yellowing leaves", "sooty mold", "virus transmission", "leaf wilting"],
-                "control_measures": {
-                    "chemical": ["insecticidal soap", "pyriproxyfen", "buprofezin", "dinotefuran"],
-                    "biological": ["Encarsia formosa", "Eretmocerus spp.", "predatory beetles", "Macrolophus pygmaeus"],
-                    "cultural": ["yellow sticky traps", "maintain weed-free fields", "use reflective mulch", "screen greenhouse vents"]
-                },
-                "life_cycle": "Eggs hatch in 5-10 days, lifecycle completes in 20-30 days.",
-                "economic_impact": "Yield losses up to 50% in greenhouse crops; affects export quality due to virus transmission.",
-                "environmental_conditions": {
-                    "temperature": "20-30°C",
-                    "humidity": "High",
-                    "soil_type": "Well-drained"
-                },
-                "appearance": {
-                    "color": ["white"],
-                    "size": ["tiny", "small"]
-                },
-                "synonyms": ["white fly", "whiteflies", "Bemisia tabaci", "Trialeurodes vaporariorum"]
-            },
-            "aphid": {
-                "crops": ["cabbage", "lettuce", "potato", "beans", "peas", "roses"],
-                "regions": ["temperate", "tropical", "subtropical"],
-                "symptoms": ["curled leaves", "stunted growth", "sticky honeydew", "sooty mold", "virus transmission"],
-                "control_measures": {
-                    "chemical": ["neem oil", "imidacloprid", "malathion"],
-                    "biological": ["ladybugs", "lacewings", "parasitic wasps"],
-                    "cultural": ["water spray", "companion planting with marigolds", "remove infested plant parts"]
-                },
-                "life_cycle": "Reproduces asexually, lifecycle completes in 7-14 days.",
-                "economic_impact": "Can reduce crop yield by 20-40%; vectors for plant viruses.",
-                "environmental_conditions": {
-                    "temperature": "15-25°C",
-                    "humidity": "Moderate to high",
-                    "soil_type": "Fertile"
-                },
-                "appearance": {
-                    "color": ["green", "black", "brown"],
-                    "size": ["small"]
-                },
-                "synonyms": ["plant lice", "greenfly", "blackfly"]
-            },
-            "spider mite": {
-                "crops": ["tomato", "cucumber", "strawberry", "soybean", "ornamentals"],
-                "regions": ["temperate", "tropical", "greenhouses"],
-                "symptoms": ["stippling on leaves", "yellowing", "webbing", "leaf drop"],
-                "control_measures": {
-                    "chemical": ["abamectin", "spiromesifen", "bifenazate"],
-                    "biological": ["Phytoseiulus persimilis", "Neoseiulus californicus"],
-                    "cultural": ["increase humidity", "regular leaf washing", "remove infested leaves"]
-                },
-                "life_cycle": "Egg to adult in 5-20 days, depending on temperature.",
-                "economic_impact": "Can cause up to 60% yield loss in severe infestations.",
-                "environmental_conditions": {
-                    "temperature": "25-35°C",
-                    "humidity": "Low",
-                    "soil_type": "Any"
-                },
-                "appearance": {
-                    "color": ["red", "yellow", "green"],
-                    "size": ["tiny"]
-                },
-                "synonyms": ["red spider mite", "two-spotted spider mite", "Tetranychus urticae"]
-            }
-        }
-        try:
-            with open(self.knowledge_base_file, "w", encoding='utf-8') as f:
-                json.dump(default_knowledge, f, indent=2, ensure_ascii=False)
-            logger.info(f"Default knowledge base created at {self.knowledge_base_file}")
-        except Exception as e:
-            logger.error(f"Failed to create default knowledge base: {str(e)}")
-            raise FileNotFoundError(f"Failed to create knowledge base: {str(e)}")
-
-class TextAnalysisTool:
-    def __init__(self, knowledge_base: Dict):
-        self.knowledge_base = knowledge_base
-        self.model = None
-        self.fallback = False
-        self.speller = Speller(lang='en', fast=True)
-        try:
-            self.model = SentenceTransformer('all-MiniLM-L12-v2')  # Upgraded model for better embeddings
-            logger.info("SentenceTransformer model loaded successfully")
-            self.embeddings_cache = self._precompute_embeddings()
-        except Exception as e:
-            logger.warning(f"Failed to load SentenceTransformer: {str(e)}. Falling back to TextBlob.")
-            self.fallback = True
-            try:
-                test_blob = TextBlob("test")
-                test_blob.words.lemmatize()
-                Word("test").synsets
-                logger.info("TextBlob fallback initialized")
-            except Exception as e:
-                logger.error(f"TextBlob initialization failed: {str(e)}")
-                raise RuntimeError(f"TextBlob initialization failed: {str(e)}")
-
-    def _precompute_embeddings(self) -> Dict[str, Dict[str, Any]]:
-        cache = {}
-        texts = []
-        metadata = []
-        for pest, data in self.knowledge_base.items():
-            cache[pest] = {"symptoms": [], "crops": [], "conditions": [], "synonyms": [], "appearance": []}
-            for symptom in data.get("symptoms", []):
-                texts.append(symptom)
-                metadata.append((pest, "symptoms", symptom))
-            for crop in data.get("crops", []):
-                texts.append(crop)
-                metadata.append((pest, "crops", crop))
-            for key, value in data.get("environmental_conditions", {}).items():
-                if isinstance(value, str):
-                    texts.append(f"{key}: {value}")
-                    metadata.append((pest, "conditions", f"{key}: {value}"))
-            texts.append(pest)
-            metadata.append((pest, "synonyms", pest))
-            for synonym in data.get("synonyms", []):
-                texts.append(synonym)
-                metadata.append((pest, "synonyms", synonym))
-            for key, values in data.get("appearance", {}).items():
-                for value in values:
-                    texts.append(f"{key}: {value}")
-                    metadata.append((pest, "appearance", f"{key}: {value}"))
-        if texts and not self.fallback:
-            embeddings = self.model.encode(texts, convert_to_tensor=False, show_progress_bar=False)
-            for (pest, category, text), embedding in zip(metadata, embeddings):
-                cache[pest][category].append({"text": text, "embedding": embedding})
-        return cache
-
-    def _preprocess_text(self, text: str) -> Dict[str, Any]:
-        try:
-            text = text.lower().strip()
-            text = re.sub(r'[^\w\s]', ' ', text)
-            corrected = self.speller(text)
-            tokens = corrected.split()
-            colors = [t for t in tokens if t in {"white", "black", "green", "brown", "red", "yellow"}]
-            sizes = [t for t in tokens if t in {"tiny", "small", "medium", "large"}]
-            damage = [t for t in tokens if t in {"destroy", "damage", "eat", "holes", "yellowing", "wilting", "sticky", "webbing"}]
-            crops = [t for t in tokens if t in {"tomato", "cabbage", "potato", "cucumber", "cotton", "beans", "peas", "roses", "strawberry", "soybean"}]
-            return {
-                "text": corrected,
-                "original": text,
-                "color": colors[-1] if colors else None,
-                "size": sizes[0] if sizes else None,
-                "damage": damage[0] if damage else None,
-                "crop": crops[0] if crops else None
-            }
-        except Exception as e:
-            logger.error(f"Text preprocessing failed: {str(e)}")
-            raise RuntimeError(f"Text preprocessing failed: {str(e)}")
-
-    async def _get_synonyms(self, word: str) -> List[str]:
-        if self.fallback:
-            try:
-                synonyms = set()
-                word_obj = Word(word.lower())
-                for synset in word_obj.synsets:
-                    for lemma in synset.lemmas():
-                        synonyms.add(lemma.name().lower().replace('_', ' '))
-                return list(synonyms)
-            except Exception as e:
-                logger.error(f"Synonym lookup failed for '{word}': {str(e)}")
-                return []
-        return [word]
-
-    async def is_pest_related(self, description: str) -> bool:
-        try:
-            processed = self._preprocess_text(description)
-            desc_text = processed["text"]
-            pest_keywords = {
-                "insect", "bug", "pest", "mite", "aphid", "whitefly", "spider", "caterpillar", "larvae",
-                "damage", "yellowing", "wilting", "holes", "sticky", "webbing", "leaves", "plant", "crop",
-                "tomato", "cabbage", "potato", "cucumber", "cotton", "beans", "peas", "roses", "strawberry", "soybean"
-            }
-            for pest, data in self.knowledge_base.items():
-                pest_keywords.update(data.get("symptoms", []))
-                pest_keywords.update(data.get("crops", []))
-                pest_keywords.update(data.get("synonyms", []))
-                pest_keywords.add(pest.lower())
-            extended_keywords = set(pest_keywords)
-            for keyword in pest_keywords:
-                extended_keywords.update(await self._get_synonyms(keyword))
-            crop_or_symptom_mentioned = any(
-                fuzz.partial_ratio(desc_text.lower(), kw) > 75 for kw in extended_keywords
-            )
-            if self.fallback:
-                tokens = TextBlob(desc_text).words.lemmatize()
-                return any(fuzz.partial_ratio(token, kw) > 75 for token in tokens for kw in extended_keywords) or crop_or_symptom_mentioned
-            else:
-                desc_embedding = self.model.encode(desc_text, convert_to_tensor=False)
-                for keyword in extended_keywords:
-                    keyword_embedding = self.model.encode(keyword, convert_to_tensor=False)
-                    similarity = util.cos_sim(desc_embedding, keyword_embedding).item()
-                    if similarity > 0.35 or fuzz.partial_ratio(desc_text, keyword) > 75:
-                        return True
-                return crop_or_symptom_mentioned
-        except Exception as e:
-            logger.error(f"Pest-related check failed: {str(e)}")
-            return True
-
-    def get_hint(self, processed: Dict[str, Any]) -> str:
-        base_hint = dedent("""
-            Please provide a detailed description of the pest issue, including symptoms (e.g., yellowing leaves, sticky residue), affected crops (e.g., tomato, cabbage), pest appearance (e.g., color, size), and location (e.g., leaf undersides).
-            Example: "My tomato plants have yellowing leaves, sticky residue, and tiny white insects on the undersides."
-        """).strip()
-        specific = []
-        if processed.get("crop") and not processed.get("damage"):
-            specific.append("What symptoms are the plants showing (e.g., yellowing, wilting, holes)?")
-        if processed.get("damage") and not processed.get("color"):
-            specific.append("What is the color of the pests (e.g., white, green, red)?")
-        if processed.get("color") and not processed.get("size"):
-            specific.append("What is the size of the pests (e.g., tiny, small, large)?")
-        if not specific:
-            specific.append("Are the pests flying or crawling? Is there webbing or mold? Where are they located (e.g., leaf undersides, stems)?")
-        return f"{base_hint}\n\nAdditional details needed:\n- " + "\n- ".join(specific)
-
-    async def analyze(self, description: str) -> Dict[str, Any]:
-        try:
-            if not isinstance(description, str):
-                logger.error("Description is not a string")
-                return {"error": "Description must be a string"}
-            if not description.strip():
-                logger.error("Description is empty")
-                return {"error": "Description cannot be empty"}
-
-            processed = self._preprocess_text(description)
-            desc_text = processed["text"]
-            if not await self.is_pest_related(description):
-                logger.warning("Description may not be pest-related")
-                hint = self.get_hint(processed)
-                return {"warning": "The description may not be pest-related. Please provide more details.", "hint": hint}
-
-            pest_scores = []
-            if self.fallback:
-                desc_tokens = TextBlob(desc_text).words.lemmatize()
-                desc_text_blob = " ".join(desc_tokens)
-                for pest, data in self.knowledge_base.items():
-                    score = 0
-                    matches = {"symptoms": [], "crops": [], "conditions": [], "synonyms": [], "appearance": []}
-                    symptoms = data.get("symptoms", [])
-                    for symptom in symptoms:
-                        symptom_tokens = TextBlob(self._preprocess_text(symptom)["text"]).words.lemmatize()
-                        symptom_text = " ".join(symptom_tokens)
-                        if symptom.lower() in desc_text_blob.lower() or any(fuzz.partial_ratio(t, s) > 75 for t in desc_tokens for s in symptom_tokens):
-                            score += 3  # Higher weight for symptoms
-                            matches["symptoms"].append(symptom)
-                        for syn in await self._get_synonyms(symptom_text):
-                            if syn in desc_text_blob:
-                                score += 2
-                                matches["symptoms"].append(f"{symptom} (via synonym: {syn})")
-                    crops = data.get("crops", [])
-                    for crop in crops:
-                        if fuzz.partial_ratio(crop.lower(), desc_text_blob) > 75:
-                            score += 1.5
-                            matches["crops"].append(crop)
-                    env_conditions = data.get("environmental_conditions", {})
-                    for key, value in env_conditions.items():
-                        if isinstance(value, str) and fuzz.partial_ratio(value.lower(), desc_text_blob) > 75:
-                            score += 0.5
-                            matches["conditions"].append(f"{key}: {value}")
-                    pest_synonyms = await self._get_synonyms(pest) + data.get("synonyms", [])
-                    if any(fuzz.partial_ratio(syn, desc_text_blob) > 75 for syn in [pest.lower()] + pest_synonyms):
-                        score += 2
-                        matches["synonyms"].append(f"Pest name: {pest}")
-                    appearance = data.get("appearance", {})
-                    if processed["color"] and processed["color"] in appearance.get("color", []):
-                        score += 1.5
-                        matches["appearance"].append(f"Color: {processed['color']}")
-                    if processed["size"] and processed["size"] in appearance.get("size", []):
-                        score += 1.5
-                        matches["appearance"].append(f"Size: {processed['size']}")
-                    if len(matches["symptoms"]) > 1:
-                        score *= 1.3  # Boost for multiple symptom matches
-                    if score > 0:
-                        confidence = min(1 / (1 + np.exp(-score / 3)), 1.0)
-                        pest_scores.append({
-                            "pest": pest,
-                            "score": score,
-                            "confidence": confidence,
-                            "matches": matches
-                        })
-            else:
-                desc_embedding = self.model.encode(desc_text, convert_to_tensor=False)
-                for pest, cache in self.embeddings_cache.items():
-                    score = 0
-                    matches = {"symptoms": [], "crops": [], "conditions": [], "synonyms": [], "appearance": []}
-                    for item in cache["symptoms"]:
-                        similarity = util.cos_sim(desc_embedding, item["embedding"]).item()
-                        if similarity > 0.35 or fuzz.partial_ratio(item["text"], desc_text) > 75:
-                            score += 3 * max(similarity, fuzz.partial_ratio(item["text"], desc_text) / 100)
-                            matches["symptoms"].append(f"{item['text']} (similarity: {similarity:.2f})")
-                    for item in cache["crops"]:
-                        similarity = util.cos_sim(desc_embedding, item["embedding"]).item()
-                        if similarity > 0.35 or fuzz.partial_ratio(item["text"], desc_text) > 75:
-                            score += 1.5 * max(similarity, fuzz.partial_ratio(item["text"], desc_text) / 100)
-                            matches["crops"].append(f"{item['text']} (similarity: {similarity:.2f})")
-                    for item in cache["conditions"]:
-                        similarity = util.cos_sim(desc_embedding, item["embedding"]).item()
-                        if similarity > 0.35:
-                            score += 0.5 * similarity
-                            matches["conditions"].append(f"{item['text']} (similarity: {similarity:.2f})")
-                    for item in cache["synonyms"]:
-                        similarity = util.cos_sim(desc_embedding, item["embedding"]).item()
-                        if similarity > 0.35 or fuzz.partial_ratio(item["text"], desc_text) > 75:
-                            score += 2 * max(similarity, fuzz.partial_ratio(item["text"], desc_text) / 100)
-                            matches["synonyms"].append(f"Pest name: {item['text']} (similarity: {similarity:.2f})")
-                    appearance = self.knowledge_base[pest].get("appearance", {})
-                    if processed["color"] and processed["color"] in appearance.get("color", []):
-                        score += 1.5
-                        matches["appearance"].append(f"Color: {processed['color']}")
-                    if processed["size"] and processed["size"] in appearance.get("size", []):
-                        score += 1.5
-                        matches["appearance"].append(f"Size: {processed['size']}")
-                    if len(matches["symptoms"]) > 1:
-                        score *= 1.3
-                    if score > 0:
-                        confidence = min(1 / (1 + np.exp(-score / 3)), 1.0)
-                        pest_scores.append({
-                            "pest": pest,
-                            "score": score,
-                            "confidence": confidence,
-                            "matches": matches
-                        })
-
-            if not pest_scores:
-                logger.info("No pests matched the description")
-                hint = self.get_hint(processed)
-                return {
-                    "warning": "No pests matched. Please provide more details.",
-                    "hint": hint,
-                    "pests": [{
-                        "pest": "Unknown",
-                        "score": 0,
-                        "confidence": 0.0,
-                        "matches": {"symptoms": [], "crops": [], "conditions": [], "synonyms": [], "appearance": []}
-                    }]
-                }
-
-            pest_scores.sort(key=lambda x: x["score"], reverse=True)
-            top_pests = [p for p in pest_scores if p["score"] >= pest_scores[0]["score"] * 0.7][:3]
-            logger.info(f"Identified pests: {[p['pest'] for p in top_pests]}")
-            return {"pests": top_pests}
-        except Exception as e:
-            logger.error(f"Text analysis error: {str(e)}")
-            return {"error": f"Text analysis failed: {str(e)}"}
-
-class KnowledgeBase:
-    def __init__(self, json_file: str):
-        self.json_file = json_file
-        self.knowledge = {}
-        self.load()
-
-    def load(self):
-        json_path = os.path.abspath(self.json_file)
-        try:
-            if os.path.exists(json_path):
-                with open(json_path, "r", encoding='utf-8') as f:
-                    self.knowledge = json.load(f)
-                logger.info(f"Loaded knowledge base from {json_path}")
-            else:
-                logger.error(f"Knowledge base not found: {json_path}")
-                raise FileNotFoundError(f"Knowledge base not found: {json_path}")
-        except Exception as e:
-            logger.error(f"Knowledge base load error: {str(e)}")
-            raise
-
-    def search(self, query: str) -> Dict[str, Any]:
-        query = query.lower().strip()
-        if not query:
-            logger.error("Empty query")
-            return {}
-        if query in self.knowledge:
-            logger.info(f"Found data for: {query}")
-            return {query: self.knowledge[query]}
-        logger.info(f"No match for {query}")
-        return {}
-
-    def update(self, pest: str, data: Dict[str, Any]):
-        required_fields = {"crops", "regions", "symptoms", "control_measures", "life_cycle", "economic_impact", "environmental_conditions", "appearance", "synonyms"}
-        if not all(field in data for field in required_fields):
-            missing = required_fields - set(data.keys())
-            logger.error(f"Missing required fields in update: {missing}")
-            raise ValueError(f"Missing required fields: {missing}")
-        try:
-            self.knowledge[pest] = data
-            with open(self.json_file, "w", encoding='utf-8') as f:
-                json.dump(self.knowledge, f, indent=2, ensure_ascii=False)
-            logger.info(f"Updated knowledge base with pest: {pest}")
-        except Exception as e:
-            logger.error(f"Knowledge base update error: {str(e)}")
-            raise
-
-class AgroPestAgent:
-    def __init__(self):
-        self.config = Config()
-        self.knowledge_base = KnowledgeBase(self.config.knowledge_base_file)
-        self.text_tool = TextAnalysisTool(self.knowledge_base.knowledge)
-        logger.info("AgroPestAgent initialized")
-
-    async def analyze(self, description: str) -> Dict[str, Any]:
-        try:
-            logger.info(f"Analyzing description: {description}")
-            text_result = await self.text_tool.analyze(description)
-            if "error" in text_result:
-                logger.error(f"Text analysis failed: {text_result['error']}")
-                return text_result
-
-            top_pests = text_result.get("pests", [{"pest": "Unknown", "confidence": 0}])
-            likely_pest = top_pests[0]["pest"]
-            pest_data = self.knowledge_base.search(likely_pest).get(likely_pest, {})
-            report = self.generate_report(
-                likely_pest=likely_pest,
-                text_pests=top_pests,
-                pest_data=pest_data,
-                processed=self.text_tool._preprocess_text(description)
-            )
-            chart = self.generate_chart(top_pests)
-            logger.info(f"Generated report for pest: {likely_pest}")
-            return {
-                "pest": likely_pest,
-                "report": report,
-                "text_result": text_result,
-                "chart": chart
-            }
-        except Exception as e:
-            logger.error(f"Analysis error: {str(e)}")
-            return {"error": f"Analysis failed: {str(e)}"}
-
-    def generate_chart(self, top_pests: List[Dict]) -> Dict[str, Any]:
-        labels = [p["pest"] for p in top_pests]
-        confidences = [p["confidence"] for p in top_pests]
-        colors = ["#4CAF50", "#FFC107", "#F44336"]
-        return {
-            "type": "bar",
-            "data": {
-                "labels": labels,
-                "datasets": [{
-                    "label": "Confidence Score",
-                    "data": confidences,
-                    "backgroundColor": colors[:len(labels)],
-                    "borderColor": colors[:len(labels)],
-                    "borderWidth": 1
-                }]
-            },
-            "options": {
-                "responsive": True,
-                "scales": {
-                    "y": {
-                        "beginAtZero": True,
-                        "max": 1,
-                        "title": {
-                            "display": True,
-                            "text": "Confidence"
-                        }
-                    },
-                    "x": {
-                        "title": {
-                            "display": True,
-                            "text": "Possible Pests"
-                        }
-                    }
-                },
-                "plugins": {
-                    "title": {
-                        "display": True,
-                        "text": "Pest Identification Confidence"
-                    }
-                }
-            }
-        }
-
-    def generate_report(self, likely_pest: str, text_pests: List[Dict], pest_data: Dict, processed: Dict[str, Any]) -> str:
-        control_measures = pest_data.get("control_measures", {})
-        confidence = text_pests[0]["confidence"] if text_pests else 0
-        matched_indicators = []
-        for match_type in ["symptoms", "crops", "conditions", "synonyms", "appearance"]:
-            matched_indicators.extend(text_pests[0]["matches"].get(match_type, []))
-        next_steps = self.get_next_steps(likely_pest, processed)
-        sections = [
-            "Pest Identification Report",
-            "Identified Pest",
-            f"Pest: {likely_pest}",
-            f"Confidence: {confidence:.2%}",
-            "Analysis Details",
-            f"Possible Pests: {', '.join(f'{p['pest']} ({p['confidence']:.2%})' for p in text_pests)}",
-            f"Matched Indicators: {', '.join(matched_indicators) or 'None'}",
-            "Pest Information",
-            f"Crops Affected: {', '.join(pest_data.get('crops', ['Unknown']))}",
-            f"Regions: {', '.join(pest_data.get('regions', ['Unknown']))}",
-            f"Symptoms: {', '.join(pest_data.get('symptoms', ['Unknown']))}",
-            f"Appearance: Color: {', '.join(pest_data.get('appearance', {}).get('color', ['Unknown']))}, Size: {', '.join(pest_data.get('appearance', {}).get('size', ['Unknown']))}",
-            f"Life Cycle: {pest_data.get('life_cycle', 'Unknown')}",
-            f"Economic Impact: {pest_data.get('economic_impact', 'Unknown')}",
-            "Environmental Conditions",
-            f"Temperature: {pest_data.get('environmental_conditions', {}).get('temperature', 'Unknown')}",
-            f"Humidity: {pest_data.get('environmental_conditions', {}).get('humidity', 'Unknown')}",
-            f"Soil Type: {pest_data.get('environmental_conditions', {}).get('soil_type', 'Unknown')}",
-            "Control Measures",
-            f"Chemical: {', '.join(control_measures.get('chemical', ['None']))}",
-            f"Biological: {', '.join(control_measures.get('biological', ['None']))}",
-            f"Cultural: {', '.join(control_measures.get('cultural', ['None']))}",
-            "Next Steps",
-            "\n".join(f"- {step}" for step in next_steps),
-            f"Generated on: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-        ]
-        wrapped_report = []
-        for line in sections:
-            wrapped_lines = wrap(line, width=80, subsequent_indent="  ")
-            wrapped_report.extend(wrapped_lines)
-        report = "\n".join(wrapped_report)
-        report_path = f"pest_report_{uuid.uuid4().hex}.txt"
-        try:
-            with open(report_path, "w", encoding='utf-8') as f:
-                f.write(report)
-            logger.info(f"Report saved to {report_path}")
-        except Exception as e:
-            logger.error(f"Report save error: {str(e)}")
-        return report
-
-    def get_next_steps(self, pest: str, processed: Dict[str, Any]) -> List[str]:
-        steps = []
-        if pest == "whitefly":
-            steps.extend([
-                "Inspect leaf undersides for eggs or nymphs, which are tiny and white.",
-                "Apply insecticidal soap or neem oil, targeting leaf undersides.",
-                "Use yellow sticky traps to monitor and reduce whitefly populations."
-            ])
-        elif pest == "aphid":
-            steps.extend([
-                "Check for sticky honeydew or sooty mold on leaves.",
-                "Use a strong water spray to dislodge aphids or apply neem oil.",
-                "Introduce ladybugs or lacewings to control aphid populations."
-            ])
-        elif pest == "spider mite":
-            steps.extend([
-                "Look for fine webbing on leaf undersides or between leaves.",
-                "Increase humidity around plants to deter spider mites.",
-                "Apply miticides like abamectin or introduce predatory mites."
-            ])
-        else:
-            steps.extend([
-                "Inspect affected plants closely to confirm pest presence.",
-                "Apply general pest control measures like neem oil or insecticidal soap.",
-                "Monitor nearby crops for similar symptoms."
-            ])
-        steps.append(self.text_tool.get_hint(processed))
-        return steps
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "timestamp": str(uuid.uuid1())}
 
 @app.post("/identify-pest", response_model=PestResponse)
 async def identify_pest(description: PestDescription):
+    request_id = str(uuid.uuid4())
+    logger.info(f"Processing request {request_id}")
     try:
-        logger.info(f"Received request with payload: {description.dict()}")
         agent = AgroPestAgent()
         result = await agent.analyze(description.description)
-        if "error" in result:
-            logger.error(f"API error: {result['error']}")
-            raise HTTPException(status_code=400, detail=result)
+        logger.info(f"Request {request_id} processed successfully")
         return result
     except Exception as e:
-        logger.error(f"API error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
-
-@app.post("/update-knowledge")
-async def update_knowledge(update: PestKnowledgeUpdate):
-    try:
-        logger.info(f"Received knowledge update request for pest: {update.pest}")
-        agent = AgroPestAgent()
-        agent.knowledge_base.update(update.pest, update.dict())
-        agent.text_tool = TextAnalysisTool(agent.knowledge_base.knowledge)
-        logger.info(f"Knowledge base updated and embeddings refreshed for pest: {update.pest}")
-        return {"message": f"Knowledge base updated for pest: {update.pest}"}
-    except ValidationError as e:
-        logger.error(f"Validation error in knowledge update: {str(e)}")
-        raise HTTPException(status_code=400, detail=f"Invalid data format: {str(e)}")
-    except Exception as e:
-        logger.error(f"Knowledge update error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        logger.error(f"Request {request_id} failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

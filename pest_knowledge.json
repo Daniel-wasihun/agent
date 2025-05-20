@@ -1,512 +1,728 @@
 {
   "aphid": {
-    "crops": ["tomato", "wheat", "potato", "cabbage", "soybean", "lettuce", "rose"],
+    "crops": ["tomato", "wheat", "potato", "cabbage", "soybean", "lettuce", "rose", "beans", "peas"],
     "regions": ["tropical", "temperate", "subtropical"],
-    "symptoms": ["yellowing leaves", "sticky residue", "curling leaves", "stunted growth", "virus transmission", "sooty mold"],
+    "symptoms": ["yellowing leaves", "sticky honeydew", "curling leaves", "stunted growth", "virus transmission", "sooty mold", "distorted shoots", "reduced yield"],
     "control_measures": {
-      "chemical": ["imidacloprid", "malathion", "neem oil", "pyrethrum"],
-      "biological": ["ladybugs", "lacewings", "parasitic wasps", "syrphid flies"],
-      "cultural": ["crop rotation", "remove infested plants", "use reflective mulch", "intercropping with marigolds"]
+      "chemical": ["imidacloprid", "malathion", "neem oil", "pyrethrum", "acetamiprid"],
+      "biological": ["ladybugs", "lacewings", "parasitic wasps (Aphidius spp.)", "syrphid flies", "predatory midges"],
+      "cultural": ["crop rotation", "remove infested plants", "use reflective mulch", "intercropping with marigolds", "water jet dislodgement"]
     },
-    "life_cycle": "Eggs hatch in 7-10 days, nymphs mature in 10-14 days, multiple generations per season.",
-    "economic_impact": "Can reduce yield by 20-40% in severe infestations; significant in vegetable crops.",
+    "life_cycle": "Eggs hatch in 7-10 days, nymphs mature in 10-14 days, multiple generations per season (up to 20 in warm climates).",
+    "economic_impact": "Reduces yield by 20-40% in severe infestations; significant in vegetables and ornamentals due to virus transmission.",
     "environmental_conditions": {
       "temperature": "15-25°C",
       "humidity": "Moderate to high",
       "soil_type": "No specific preference"
-    }
+    },
+    "appearance": {
+      "color": ["green", "black", "brown", "yellow", "pink"],
+      "size": ["small", "1-3mm"]
+    },
+    "synonyms": ["plant lice", "greenfly", "blackfly", "Aphis spp."]
   },
   "whitefly": {
-    "crops": ["tomato", "cotton", "cucumber", "pepper", "eggplant", "sweet potato", "cassava"],
+    "crops": ["tomato", "cotton", "cucumber", "pepper", "eggplant", "sweet potato", "cassava", "beans"],
     "regions": ["tropical", "subtropical", "greenhouses"],
-    "symptoms": ["sticky leaves", "tiny white insects", "yellowing leaves", "sooty mold", "virus transmission", "leaf wilting"],
+    "symptoms": ["sticky leaves", "tiny white insects", "yellowing leaves", "sooty mold", "virus transmission", "leaf wilting", "reduced photosynthesis"],
     "control_measures": {
-      "chemical": ["insecticidal soap", "pyriproxyfen", "buprofezin", "dinotefuran"],
-      "biological": ["Encarsia formosa", "Eretmocerus spp.", "predatory beetles", "Macrolophus pygmaeus"],
-      "cultural": ["yellow sticky traps", "maintain weed-free fields", "use reflective mulch", "screen greenhouse vents"]
+      "chemical": ["insecticidal soap", "pyriproxyfen", "buprofezin", "dinotefuran", "spiromesifen"],
+      "biological": ["Encarsia formosa", "Eretmocerus spp.", "predatory beetles (Delphastus spp.)", "Macrolophus pygmaeus"],
+      "cultural": ["yellow sticky traps", "maintain weed-free fields", "use reflective mulch", "screen greenhouse vents", "monitor with traps"]
     },
-    "life_cycle": "Eggs hatch in 5-10 days, lifecycle completes in 20-30 days.",
-    "economic_impact": "Yield losses up to 50% in greenhouse crops; affects export quality due to virus transmission.",
+    "life_cycle": "Eggs hatch in 5-10 days, lifecycle completes in 20-30 days, multiple generations per year.",
+    "economic_impact": "Yield losses up to 50% in greenhouse crops; affects export quality due to virus transmission (e.g., Tomato Yellow Leaf Curl Virus).",
     "environmental_conditions": {
       "temperature": "20-30°C",
       "humidity": "High",
       "soil_type": "Well-drained"
-    }
+    },
+    "appearance": {
+      "color": ["white"],
+      "size": ["tiny", "1-2mm"]
+    },
+    "synonyms": ["white fly", "whiteflies", "Bemisia tabaci", "Trialeurodes vaporariorum"]
   },
   "fall_armyworm": {
-    "crops": ["maize", "sorghum", "rice", "cotton", "millet", "sugarcane", "pasture"],
+    "crops": ["maize", "sorghum", "rice", "cotton", "millet", "sugarcane", "pasture", "wheat"],
     "regions": ["tropical", "subtropical", "temperate"],
-    "symptoms": ["chewed leaves", "holes in stems", "frass on plants", "defoliation", "larvae in whorls"],
+    "symptoms": ["chewed leaves", "holes in stems", "frass on plants", "defoliation", "larvae in whorls", "damaged cobs"],
     "control_measures": {
       "chemical": ["spinosad", "chlorantraniliprole", "lambda-cyhalothrin", "emamectin benzoate"],
       "biological": ["Bacillus thuringiensis", "Trichogramma wasps", "predatory bugs", "Telenomus remus"],
-      "cultural": ["early planting", "intercropping with legumes", "destroy crop residues", "push-pull strategy"]
+      "cultural": ["early planting", "intercropping with legumes", "destroy crop residues", "push-pull strategy with Napier grass"]
     },
-    "life_cycle": "Eggs hatch in 2-4 days, larvae feed for 14-30 days, lifecycle completes in 30-50 days.",
-    "economic_impact": "Can cause 20-100% yield loss in maize; significant in subsistence farming.",
+    "life_cycle": "Eggs hatch in 2-4 days, larvae feed for 14-30 days, lifecycle completes in 30-50 days, multiple generations in warm climates.",
+    "economic_impact": "Can cause 20-100% yield loss in maize; significant threat to subsistence farming in Africa and Asia.",
     "environmental_conditions": {
       "temperature": "20-35°C",
       "humidity": "Moderate",
       "soil_type": "Loamy"
-    }
+    },
+    "appearance": {
+      "color": ["brown", "green", "gray"],
+      "size": ["medium", "15-40mm larvae"]
+    },
+    "synonyms": ["Spodoptera frugiperda", "armyworm", "maize armyworm"]
   },
   "spider_mite": {
-    "crops": ["tomato", "strawberry", "cucumber", "soybean", "apple", "grape", "rose"],
-    "regions": ["temperate", "subtropical", "arid"],
-    "symptoms": ["stippling on leaves", "webbing", "yellowing", "bronzing", "leaf drop", "reduced photosynthesis"],
+    "crops": ["tomato", "strawberry", "cucumber", "soybean", "apple", "grape", "rose", "ornamentals"],
+    "regions": ["temperate", "subtropical", "arid", "greenhouses"],
+    "symptoms": ["stippling on leaves", "webbing", "yellowing", "bronzing", "leaf drop", "reduced photosynthesis", "speckled leaves"],
     "control_measures": {
-      "chemical": ["abamectin", "bifenazate", "spiromesifen", "hexythiazox"],
-      "biological": ["Phytoseiulus persimilis", "Neoseiulus californicus", "Amblyseius andersoni"],
+      "chemical": ["abamectin", "bifenazate", "spiromesifen", "hexythiazox", "etoxazole"],
+      "biological": ["Phytoseiulus persimilis", "Neoseiulus californicus", "Amblyseius andersoni", "Feltiella acarisuga"],
       "cultural": ["increase humidity", "avoid water stress", "remove infested leaves", "avoid broad-spectrum pesticides"]
     },
-    "life_cycle": "Eggs hatch in 3-5 days, lifecycle completes in 10-20 days under warm conditions.",
-    "economic_impact": "Reduces fruit quality; losses up to 30% in strawberries and grapes.",
+    "life_cycle": "Eggs hatch in 3-5 days, lifecycle completes in 10-20 days under warm conditions, multiple generations per season.",
+    "economic_impact": "Reduces fruit quality; losses up to 30-60% in strawberries, grapes, and greenhouse crops.",
     "environmental_conditions": {
       "temperature": "25-35°C",
       "humidity": "Low to moderate",
       "soil_type": "No specific preference"
-    }
+    },
+    "appearance": {
+      "color": ["red", "yellow", "green"],
+      "size": ["tiny", "0.3-0.5mm"]
+    },
+    "synonyms": ["red spider mite", "two-spotted spider mite", "Tetranychus urticae"]
   },
   "thrips": {
-    "crops": ["onion", "cotton", "tomato", "pepper", "citrus", "rose", "greenhouse crops"],
+    "crops": ["onion", "cotton", "tomato", "pepper", "citrus", "rose", "greenhouse crops", "cucumber"],
     "regions": ["tropical", "subtropical", "temperate"],
-    "symptoms": ["silvering leaves", "stippling", "distorted growth", "virus transmission", "black frass spots"],
+    "symptoms": ["silvering leaves", "stippling", "distorted growth", "virus transmission", "black frass spots", "bud damage"],
     "control_measures": {
-      "chemical": ["spinosad", "imidacloprid", "methomyl", "cyantraniliprole"],
-      "biological": ["Orius spp.", "predatory mites", "Amblyseius swirskii"],
-      "cultural": ["blue sticky traps", "crop rotation", "remove weeds", "monitor with sticky cards"]
+      "chemical": ["spinosad", "imidacloprid", "methomyl", "cyantraniliprole", "abamectin"],
+      "biological": ["Orius spp.", "Amblyseius swirskii", "predatory mites", "Hypoaspis miles"],
+      "cultural": ["blue sticky traps", "crop rotation", "remove weeds", "monitor with sticky cards", "avoid over-fertilization"]
     },
-    "life_cycle": "Eggs hatch in 3-5 days, lifecycle completes in 15-30 days.",
-    "economic_impact": "Can reduce onion yield by 20-50%; impacts fruit and flower quality.",
+    "life_cycle": "Eggs hatch in 3-5 days, lifecycle completes in 15-30 days, multiple generations per season.",
+    "economic_impact": "Reduces onion yield by 20-50%; impacts fruit and flower quality; vectors Tospoviruses.",
     "environmental_conditions": {
       "temperature": "20-30°C",
       "humidity": "Low to moderate",
       "soil_type": "Sandy loam"
-    }
+    },
+    "appearance": {
+      "color": ["yellow", "brown", "black"],
+      "size": ["tiny", "0.5-2mm"]
+    },
+    "synonyms": ["thrip", "Frankliniella occidentalis", "Thrips tabaci"]
   },
   "cutworm": {
-    "crops": ["maize", "potato", "tomato", "cabbage", "soybean", "sunflower"],
+    "crops": ["maize", "potato", "tomato", "cabbage", "soybean", "sunflower", "peppers"],
     "regions": ["temperate", "subtropical"],
-    "symptoms": ["cut stems", "wilting seedlings", "chewed leaves", "larvae in soil"],
+    "symptoms": ["cut stems", "wilting seedlings", "chewed leaves", "larvae in soil", "plant collapse"],
     "control_measures": {
-      "chemical": ["permethrin", "carbaryl", "deltamethrin"],
+      "chemical": ["permethrin", "carbaryl", "deltamethrin", "chlorantraniliprole"],
       "biological": ["Trichogramma wasps", "Steinernema carpocapsae", "Heterorhabditis bacteriophora"],
-      "cultural": ["tillage", "remove weeds", "use barriers", "flood irrigation"]
+      "cultural": ["tillage", "remove weeds", "use barriers (e.g., collars)", "flood irrigation"]
     },
     "life_cycle": "Eggs hatch in 5-10 days, larvae feed for 20-40 days, lifecycle completes in 35-60 days.",
-    "economic_impact": "Can destroy 10-30% of seedlings in severe cases.",
+    "economic_impact": "Destroys 10-30% of seedlings in severe cases; significant in early-season crops.",
     "environmental_conditions": {
       "temperature": "15-25°C",
       "humidity": "Moderate",
       "soil_type": "Moist, loamy"
-    }
+    },
+    "appearance": {
+      "color": ["gray", "brown", "black"],
+      "size": ["medium", "20-40mm larvae"]
+    },
+    "synonyms": ["Agrotis spp.", "black cutworm", "common cutworm"]
   },
   "corn_earworm": {
-    "crops": ["maize", "tomato", "cotton", "sorghum", "bean", "pepper"],
+    "crops": ["maize", "tomato", "cotton", "sorghum", "bean", "pepper", "sunflower"],
     "regions": ["tropical", "subtropical", "temperate"],
-    "symptoms": ["chewed kernels", "holes in fruits", "frass", "larvae in ears or pods"],
+    "symptoms": ["chewed kernels", "holes in fruits", "frass", "larvae in ears or pods", "damaged flowers"],
     "control_measures": {
-      "chemical": ["spinosad", "lambda-cyhalothrin", "methoxyfenozide"],
+      "chemical": ["spinosad", "lambda-cyhalothrin", "methoxyfenozide", "chlorantraniliprole"],
       "biological": ["Trichogramma wasps", "Bacillus thuringiensis", "nuclear polyhedrosis virus"],
-      "cultural": ["early planting", "destroy crop residues", "use Bt crops"]
+      "cultural": ["early planting", "destroy crop residues", "use Bt crops", "monitor with pheromone traps"]
     },
     "life_cycle": "Eggs hatch in 2-5 days, larvae feed for 10-20 days, lifecycle completes in 30-40 days.",
-    "economic_impact": "Can reduce maize and cotton yield by 15-30%.",
+    "economic_impact": "Reduces maize and cotton yield by 15-30%; affects fruit and vegetable quality.",
     "environmental_conditions": {
       "temperature": "20-30°C",
       "humidity": "Moderate",
       "soil_type": "No specific preference"
-    }
+    },
+    "appearance": {
+      "color": ["green", "brown", "yellow"],
+      "size": ["medium", "15-35mm larvae"]
+    },
+    "synonyms": ["Helicoverpa zea", "cotton bollworm", "tomato fruitworm"]
   },
   "colorado_potato_beetle": {
     "crops": ["potato", "tomato", "eggplant", "pepper"],
     "regions": ["temperate", "subtropical"],
-    "symptoms": ["defoliation", "chewed leaves", "yellow larvae", "black stripes on adults"],
+    "symptoms": ["defoliation", "chewed leaves", "yellow larvae", "black stripes on adults", "reduced tuber yield"],
     "control_measures": {
-      "chemical": ["imidacloprid", "spinosad", "azadirachtin"],
+      "chemical": ["imidacloprid", "spinosad", "azadirachtin", "chlorantraniliprole"],
       "biological": ["Lebia grandis", "Bacillus thuringiensis var. tenebrionis", "Perillus bioculatus"],
-      "cultural": ["crop rotation", "hand-picking", "use resistant varieties", "mulching"]
+      "cultural": ["crop rotation", "hand-picking", "use resistant varieties", "mulching with straw"]
     },
     "life_cycle": "Eggs hatch in 4-10 days, larvae feed for 10-20 days, lifecycle completes in 30-50 days.",
-    "economic_impact": "Can cause 30-50% yield loss in potatoes; significant in organic farming.",
+    "economic_impact": "Causes 30-50% yield loss in potatoes; significant in organic and small-scale farming.",
     "environmental_conditions": {
       "temperature": "15-25°C",
       "humidity": "Moderate",
       "soil_type": "Loamy"
-    }
+    },
+    "appearance": {
+      "color": ["yellow", "black stripes"],
+      "size": ["medium", "8-12mm adults", "5-15mm larvae"]
+    },
+    "synonyms": ["Leptinotarsa decemlineata", "potato beetle", "ten-lined beetle"]
   },
   "diamondback_moth": {
-    "crops": ["cabbage", "broccoli", "cauliflower", "kale", "mustard"],
+    "crops": ["cabbage", "broccoli", "cauliflower", "kale", "mustard", "brussels sprouts"],
     "regions": ["tropical", "temperate", "subtropical"],
-    "symptoms": ["holes in leaves", "webbing", "small green larvae", "windowpane effect"],
+    "symptoms": ["holes in leaves", "webbing", "small green larvae", "windowpane effect", "defoliation"],
     "control_measures": {
-      "chemical": ["spinosad", "indoxacarb", "emamectin benzoate"],
+      "chemical": ["spinosad", "indoxacarb", "emamectin benzoate", "chlorantraniliprole"],
       "biological": ["Diadegma insulare", "Bacillus thuringiensis", "Cotesia vestalis"],
-      "cultural": ["crop rotation", "remove crop debris", "use trap crops like mustard"]
+      "cultural": ["crop rotation", "remove crop debris", "use trap crops like mustard", "floating row covers"]
     },
-    "life_cycle": "Eggs hatch in 4-6 days, lifecycle completes in 15-30 days.",
-    "economic_impact": "Can reduce cabbage yield by 20-40%; costly due to pesticide resistance.",
+    "life_cycle": "Eggs hatch in 4-6 days, lifecycle completes in 15-30 days, multiple generations per season.",
+    "economic_impact": "Reduces cabbage yield by 20-40%; costly due to pesticide resistance in some regions.",
     "environmental_conditions": {
       "temperature": "15-30°C",
       "humidity": "Moderate to high",
       "soil_type": "No specific preference"
-    }
+    },
+    "appearance": {
+      "color": ["green larvae", "gray-brown adults"],
+      "size": ["small", "5-8mm larvae", "8-12mm adults"]
+    },
+    "synonyms": ["Plutella xylostella", "cabbage moth", "brassica moth"]
   },
   "cabbage_looper": {
-    "crops": ["cabbage", "broccoli", "lettuce", "celery", "spinach"],
+    "crops": ["cabbage", "broccoli", "lettuce", "celery", "spinach", "cauliflower"],
     "regions": ["temperate", "subtropical"],
-    "symptoms": ["large holes in leaves", "green larvae", "frass", "looping movement"],
+    "symptoms": ["large holes in leaves", "green larvae", "frass", "looping movement", "defoliation"],
     "control_measures": {
-      "chemical": ["spinosad", "permethrin", "methoxyfenozide"],
+      "chemical": ["spinosad", "permethrin", "methoxyfenozide", "chlorantraniliprole"],
       "biological": ["Trichogramma wasps", "Bacillus thuringiensis", "nuclear polyhedrosis virus"],
-      "cultural": ["floating row covers", "remove infested leaves", "intercropping"]
+      "cultural": ["floating row covers", "remove infested leaves", "intercropping with dill"]
     },
     "life_cycle": "Eggs hatch in 3-5 days, larvae feed for 15-25 days, lifecycle completes in 25-35 days.",
-    "economic_impact": "Can cause 20-30% yield loss in leafy vegetables.",
+    "economic_impact": "Causes 20-30% yield loss in leafy vegetables; affects organic production.",
     "environmental_conditions": {
       "temperature": "20-30°C",
       "humidity": "Moderate",
       "soil_type": "No specific preference"
-    }
+    },
+    "appearance": {
+      "color": ["green larvae", "brown adults"],
+      "size": ["medium", "20-30mm larvae", "15-20mm adults"]
+    },
+    "synonyms": ["Trichoplusia ni", "looper caterpillar", "cabbage worm"]
   },
   "fruit_fly": {
-    "crops": ["mango", "citrus", "banana", "guava", "papaya", "peach"],
+    "crops": ["mango", "citrus", "banana", "guava", "papaya", "peach", "apple"],
     "regions": ["tropical", "subtropical"],
-    "symptoms": ["punctures in fruit", "rotting fruit", "larvae in fruit", "fruit drop"],
+    "symptoms": ["punctures in fruit", "rotting fruit", "larvae in fruit", "fruit drop", "discoloration"],
     "control_measures": {
-      "chemical": ["malathion", "spinosad", "dimethoate"],
-      "biological": ["parasitic wasps", "sterile insect technique", "Opius longicaudatus"],
+      "chemical": ["malathion", "spinosad", "dimethoate", "fipronil"],
+      "biological": ["parasitic wasps (Fopius arisanus)", "sterile insect technique", "Opius longicaudatus"],
       "cultural": ["sanitation", "bagging fruit", "trapping with methyl eugenol", "early harvest"]
     },
-    "life_cycle": "Eggs hatch in 1-3 days, lifecycle completes in 20-30 days.",
-    "economic_impact": "Can cause 50-80% fruit loss in severe cases; affects export markets.",
+    "life_cycle": "Eggs hatch in 1-3 days, lifecycle completes in 20-30 days, multiple generations per year.",
+    "economic_impact": "Causes 50-80% fruit loss in severe cases; restricts export due to quarantine regulations.",
     "environmental_conditions": {
       "temperature": "25-35°C",
       "humidity": "High",
       "soil_type": "No specific preference"
-    }
+    },
+    "appearance": {
+      "color": ["yellow", "brown", "black"],
+      "size": ["small", "3-5mm adults"]
+    },
+    "synonyms": ["Bactrocera spp.", "Ceratitis capitata", "Mediterranean fruit fly", "tropical fruit fly"]
   },
   "boll_weevil": {
     "crops": ["cotton"],
     "regions": ["tropical", "subtropical", "temperate"],
-    "symptoms": ["boll damage", "punctured squares", "larvae in bolls", "square drop"],
+    "symptoms": ["boll damage", "punctured squares", "larvae in bolls", "square drop", "reduced lint quality"],
     "control_measures": {
-      "chemical": ["malathion", "pyrethroids", "organophosphates"],
+      "chemical": ["malathion", "pyrethroids", "organophosphates", "spinosad"],
       "biological": ["Anthonomus grandis parasites", "predatory insects", "Bracon spp."],
-      "cultural": ["destroy crop residues", "early planting", "pheromone traps"]
+      "cultural": ["destroy crop residues", "early planting", "pheromone traps", "use Bt cotton"]
     },
-    "life_cycle": "Eggs hatch in 3-5 days, lifecycle completes in 20-25 days.",
-    "economic_impact": "Can reduce cotton yield by 10-40%; historically devastating.",
+    "life_cycle": "Eggs hatch in 3-5 days, larvae feed for 7-12 days, lifecycle completes in 20-25 days.",
+    "economic_impact": "Reduces cotton yield by 10-40%; historically devastating, reduced by eradication programs.",
     "environmental_conditions": {
       "temperature": "20-30°C",
       "humidity": "Moderate",
       "soil_type": "Well-drained"
-    }
+    },
+    "appearance": {
+      "color": ["gray", "brown"],
+      "size": ["small", "4-6mm adults"]
+    },
+    "synonyms": ["Anthonomus grandis", "cotton weevil", "boll beetle"]
   },
   "stem_borer": {
-    "crops": ["maize", "rice", "sugarcane", "sorghum", "millet"],
+    "crops": ["maize", "rice", "sugarcane", "sorghum", "millet", "wheat"],
     "regions": ["tropical", "subtropical"],
-    "symptoms": ["tunneling in stems", "frass", "wilting", "dead heart in young plants"],
+    "symptoms": ["tunneling in stems", "frass", "wilting", "dead heart in young plants", "broken stems"],
     "control_measures": {
-      "chemical": ["chlorantraniliprole", "carbofuran", "fipronil"],
+      "chemical": ["chlorantraniliprole", "carbofuran", "fipronil", "imidacloprid"],
       "biological": ["Trichogramma wasps", "Bacillus thuringiensis", "Cotesia flavipes"],
-      "cultural": ["destroy crop residues", "intercropping", "use resistant varieties"]
+      "cultural": ["destroy crop residues", "intercropping with legumes", "use resistant varieties"]
     },
     "life_cycle": "Eggs hatch in 5-7 days, larvae feed for 20-40 days, lifecycle completes in 40-60 days.",
-    "economic_impact": "Can cause 20-50% yield loss in maize and rice.",
+    "economic_impact": "Causes 20-50% yield loss in maize and rice; significant in tropical agriculture.",
     "environmental_conditions": {
       "temperature": "20-35°C",
       "humidity": "Moderate to high",
       "soil_type": "Loamy"
-    }
+    },
+    "appearance": {
+      "color": ["white", "cream", "brown larvae"],
+      "size": ["medium", "10-25mm larvae"]
+    },
+    "synonyms": ["Chilo partellus", "Busseola fusca", "maize stem borer", "rice borer"]
   },
   "leafhopper": {
-    "crops": ["grape", "potato", "bean", "rice", "alfalfa", "cotton"],
+    "crops": ["grape", "potato", "bean", "rice", "alfalfa", "cotton", "tomato"],
     "regions": ["temperate", "subtropical", "tropical"],
-    "symptoms": ["yellowing", "stippling", "virus transmission", "sap sucking", "leaf curling"],
+    "symptoms": ["yellowing", "stippling", "virus transmission", "sap sucking", "leaf curling", "hopper burn"],
     "control_measures": {
-      "chemical": ["imidacloprid", "pyrethroids", "dinotefuran"],
+      "chemical": ["imidacloprid", "pyrethroids", "dinotefuran", "thiamethoxam"],
       "biological": ["Anagrus spp.", "predatory bugs", "Erythroneura spp."],
-      "cultural": ["remove weeds", "use resistant varieties", "monitor with sticky traps"]
+      "cultural": ["remove weeds", "use resistant varieties", "monitor with yellow sticky traps"]
     },
-    "life_cycle": "Eggs hatch in 6-10 days, lifecycle completes in 20-40 days.",
-    "economic_impact": "Can reduce grape yield by 15-30% via virus spread; affects rice quality.",
+    "life_cycle": "Eggs hatch in 6-10 days, lifecycle completes in 20-40 days, multiple generations per season.",
+    "economic_impact": "Reduces grape and rice yield by 15-30% via virus spread; affects vegetable quality.",
     "environmental_conditions": {
       "temperature": "20-30°C",
       "humidity": "Moderate",
       "soil_type": "No specific preference"
-    }
+    },
+    "appearance": {
+      "color": ["green", "yellow", "brown"],
+      "size": ["small", "3-5mm adults"]
+    },
+    "synonyms": ["Cicadellidae", "jassid", "grape leafhopper"]
   },
   "mealybug": {
-    "crops": ["grape", "citrus", "cotton", "pineapple", "coffee", "cocoa"],
+    "crops": ["grape", "citrus", "cotton", "pineapple", "coffee", "cocoa", "papaya"],
     "regions": ["tropical", "subtropical", "greenhouses"],
-    "symptoms": ["sticky residue", "sooty mold", "stunted growth", "white waxy coating", "leaf yellowing"],
+    "symptoms": ["sticky honeydew", "sooty mold", "stunted growth", "white waxy coating", "leaf yellowing", "fruit drop"],
     "control_measures": {
-      "chemical": ["insecticidal soap", "imidacloprid", "buprofezin"],
-      "biological": ["Cryptolaemus montrouzieri", "parasitic wasps", "Leptomastix dactylopii"],
-      "cultural": ["prune infested parts", "maintain plant health", "use sticky barriers"]
+      "chemical": ["insecticidal soap", "imidacloprid", "buprofezin", "spirotetramat"],
+      "biological": ["Cryptolaemus montrouzieri", "parasitic wasps (Leptomastix dactylopii)", "ladybugs"],
+      "cultural": ["prune infested parts", "maintain plant health", "use sticky barriers", "monitor with traps"]
     },
-    "life_cycle": "Eggs hatch in 5-10 days, lifecycle completes in 30-40 days.",
-    "economic_impact": "Can reduce fruit quality; losses up to 30% in grapes and citrus.",
+    "life_cycle": "Eggs hatch in 5-10 days, lifecycle completes in 30-40 days, multiple generations per year.",
+    "economic_impact": "Reduces fruit quality; losses up to 30-50% in grapes, citrus, and coffee.",
     "environmental_conditions": {
       "temperature": "20-30°C",
       "humidity": "High",
       "soil_type": "No specific preference"
-    }
+    },
+    "appearance": {
+      "color": ["white", "pink"],
+      "size": ["small", "2-5mm"]
+    },
+    "synonyms": ["Pseudococcidae", "mealy bug", "cotton mealybug"]
   },
   "scale_insect": {
-    "crops": ["citrus", "olive", "apple", "grape", "mango", "ornamentals"],
+    "crops": ["citrus", "olive", "apple", "grape", "mango", "ornamentals", "peach"],
     "regions": ["tropical", "subtropical", "temperate"],
-    "symptoms": ["galls", "yellowing", "sooty mold", "stunted growth", "sticky residue"],
+    "symptoms": ["galls", "yellowing", "sooty mold", "stunted growth", "sticky honeydew", "leaf drop"],
     "control_measures": {
-      "chemical": ["horticultural oil", "imidacloprid", "pyriproxyfen"],
-      "biological": ["Aphytis melinus", "Chilocorus spp.", "Metaphycus helvolus"],
+      "chemical": ["horticultural oil", "imidacloprid", "pyriproxyfen", "spirotetramat"],
+      "biological": ["Aphytis melinus", "Chilocorus spp.", "Metaphycus helvolus", "ladybugs"],
       "cultural": ["prune infested branches", "maintain plant vigor", "monitor with sticky traps"]
     },
-    "life_cycle": "Eggs hatch in 7-14 days, lifecycle completes in 30-60 days.",
-    "economic_impact": "Can reduce citrus yield by 20-40%; affects fruit aesthetics.",
+    "life_cycle": "Eggs hatch in 7-14 days, lifecycle completes in 30-60 days, multiple generations per year.",
+    "economic_impact": "Reduces citrus and grape yield by 20-40%; affects fruit aesthetics and marketability.",
     "environmental_conditions": {
       "temperature": "20-30°C",
       "humidity": "Moderate to high",
       "soil_type": "Well-drained"
-    }
+    },
+    "appearance": {
+      "color": ["brown", "black", "gray"],
+      "size": ["tiny", "1-5mm"]
+    },
+    "synonyms": ["Coccidae", "armored scale", "soft scale"]
   },
   "wireworm": {
-    "crops": ["potato", "maize", "wheat", "carrot", "sugar beet", "onion"],
+    "crops": ["potato", "maize", "wheat", "carrot", "sugar beet", "onion", "lettuce"],
     "regions": ["temperate", "subtropical"],
-    "symptoms": ["tunneling in roots", "wilting", "stunted growth", "holes in tubers"],
+    "symptoms": ["tunneling in roots", "wilting", "stunted growth", "holes in tubers", "seedling death"],
     "control_measures": {
-      "chemical": ["imidacloprid", "fipronil", "clothianidin"],
-      "biological": ["entomopathogenic nematodes", "Metarhizium anisopliae"],
-      "cultural": ["crop rotation", "deep tillage", "avoid planting in infested fields"]
+      "chemical": ["imidacloprid", "fipronil", "clothianidin", "thiamethoxam"],
+      "biological": ["entomopathogenic nematodes (Steinernema spp.)", "Metarhizium anisopliae"],
+      "cultural": ["crop rotation with non-hosts", "deep tillage", "avoid planting in infested fields"]
     },
-    "life_cycle": "Larvae live 2-5 years in soil, lifecycle completes in 3-6 years.",
-    "economic_impact": "Can cause 10-30% yield loss in root crops; significant in potatoes.",
+    "life_cycle": "Larvae live 2-5 years in soil, lifecycle completes in 3-6 years, one generation every few years.",
+    "economic_impact": "Causes 10-30% yield loss in root crops; significant in potatoes and carrots.",
     "environmental_conditions": {
       "temperature": "10-20°C",
       "humidity": "High",
       "soil_type": "Moist, loamy"
-    }
+    },
+    "appearance": {
+      "color": ["yellow", "brown"],
+      "size": ["medium", "10-25mm larvae"]
+    },
+    "synonyms": ["Agriotes spp.", "click beetle larvae", "soil wireworm"]
   },
   "armyworm": {
-    "crops": ["maize", "wheat", "rice", "pasture", "sorghum", "millet"],
+    "crops": ["maize", "wheat", "rice", "pasture", "sorghum", "millet", "barley"],
     "regions": ["tropical", "subtropical", "temperate"],
-    "symptoms": ["defoliation", "chewed leaves", "frass", "larvae in clusters"],
+    "symptoms": ["defoliation", "chewed leaves", "frass", "larvae in clusters", "skeletonized leaves"],
     "control_measures": {
-      "chemical": ["spinosad", "lambda-cyhalothrin", "chlorantraniliprole"],
+      "chemical": ["spinosad", "lambda-cyhalothrin", "chlorantraniliprole", "methoxyfenozide"],
       "biological": ["Trichogramma wasps", "Bacillus thuringiensis", "Spodoptera frugiperda NPV"],
-      "cultural": ["early planting", "destroy crop residues", "intercropping"]
+      "cultural": ["early planting", "destroy crop residues", "intercropping with legumes"]
     },
     "life_cycle": "Eggs hatch in 3-5 days, larvae feed for 20-30 days, lifecycle completes in 30-50 days.",
-    "economic_impact": "Can cause 20-50% yield loss in cereals; affects fodder crops.",
+    "economic_impact": "Causes 20-50% yield loss in cereals; affects fodder crops and pastures.",
     "environmental_conditions": {
       "temperature": "20-30°C",
       "humidity": "Moderate",
       "soil_type": "No specific preference"
-    }
+    },
+    "appearance": {
+      "color": ["green", "brown", "black"],
+      "size": ["medium", "20-40mm larvae"]
+    },
+    "synonyms": ["Spodoptera spp.", "common armyworm", "beet armyworm"]
   },
   "green_stink_bug": {
-    "crops": ["soybean", "tomato", "pepper", "cotton", "rice", "pecan"],
+    "crops": ["soybean", "tomato", "pepper", "cotton", "rice", "pecan", "bean"],
     "regions": ["tropical", "subtropical", "temperate"],
-    "symptoms": ["sap sucking", "fruit damage", "discoloration", "seed damage"],
+    "symptoms": ["sap sucking", "fruit damage", "discoloration", "seed damage", "deformed pods"],
     "control_measures": {
-      "chemical": ["pyrethroids", "neonicotinoids", "bifenthrin"],
+      "chemical": ["pyrethroids", "neonicotinoids", "bifenthrin", "lambda-cyhalothrin"],
       "biological": ["Trissolcus basalis", "predatory bugs", "Telenomus podisi"],
-      "cultural": ["trap crops", "remove weeds", "monitor with pheromone traps"]
+      "cultural": ["trap crops (e.g., sorghum)", "remove weeds", "monitor with pheromone traps"]
     },
-    "life_cycle": "Eggs hatch in 5-7 days, lifecycle completes in 30-45 days.",
-    "economic_impact": "Can reduce soybean yield by 10-30%; affects nut crops.",
+    "life_cycle": "Eggs hatch in 5-7 days, lifecycle completes in 30-45 days, multiple generations per season.",
+    "economic_impact": "Reduces soybean and nut yield by 10-30%; affects seed and fruit quality.",
     "environmental_conditions": {
       "temperature": "20-30°C",
       "humidity": "Moderate to high",
       "soil_type": "No specific preference"
-    }
+    },
+    "appearance": {
+      "color": ["green", "brown"],
+      "size": ["medium", "10-15mm adults"]
+    },
+    "synonyms": ["Nezara viridula", "southern green stink bug", "stinkbug"]
   },
   "tarnished_plant_bug": {
-    "crops": ["strawberry", "cotton", "alfalfa", "bean", "celery", "apple"],
+    "crops": ["strawberry", "cotton", "alfalfa", "bean", "celery", "apple", "peach"],
     "regions": ["temperate", "subtropical"],
-    "symptoms": ["plant distortion", "flower drop", "deformed fruit", "stippling"],
+    "symptoms": ["plant distortion", "flower drop", "deformed fruit", "stippling", "cat-facing on fruit"],
     "control_measures": {
-      "chemical": ["imidacloprid", "pyrethroids", "flonicamid"],
+      "chemical": ["imidacloprid", "pyrethroids", "flonicamid", "novaluron"],
       "biological": ["Peristenus relictus", "predatory bugs", "Anaphes iole"],
-      "cultural": ["weed control", "monitor early season", "use trap crops"]
+      "cultural": ["weed control", "monitor early season", "use trap crops (e.g., alfalfa)"]
     },
-    "life_cycle": "Eggs hatch in 7-10 days, lifecycle completes in 25-35 days.",
-    "economic_impact": "Can cause 20-40% loss in strawberries; affects seed crops.",
+    "life_cycle": "Eggs hatch in 7-10 days, lifecycle completes in 25-35 days, multiple generations per season.",
+    "economic_impact": "Causes 20-40% loss in strawberries and cotton; affects seed crops and fruit quality.",
     "environmental_conditions": {
       "temperature": "15-25°C",
       "humidity": "Moderate",
       "soil_type": "No specific preference"
-    }
+    },
+    "appearance": {
+      "color": ["brown", "yellow", "green"],
+      "size": ["small", "4-6mm adults"]
+    },
+    "synonyms": ["Lygus lineolaris", "plant bug", "firebug"]
   },
   "desert_locust": {
-    "crops": ["maize", "wheat", "sorghum", "pasture", "vegetables", "fruit trees"],
+    "crops": ["maize", "wheat", "sorghum", "pasture", "vegetables", "fruit trees", "barley"],
     "regions": ["tropical", "subtropical", "arid"],
-    "symptoms": ["massive defoliation", "chewed plants", "swarming behavior"],
+    "symptoms": ["massive defoliation", "chewed plants", "swarming behavior", "complete crop destruction"],
     "control_measures": {
-      "chemical": ["malathion", "deltamethrin", "fipronil"],
-      "biological": ["Metarhizium acridum", "Nosema locustae"],
-      "cultural": ["early warning systems", "coordinated spraying", "barriers"]
+      "chemical": ["malathion", "deltamethrin", "fipronil", "chlorpyrifos"],
+      "biological": ["Metarhizium acridum", "Nosema locustae", "predatory birds"],
+      "cultural": ["early warning systems", "coordinated spraying", "barriers", "monitor with satellite imagery"]
     },
-    "life_cycle": "Eggs hatch in 10-14 days, lifecycle completes in 35-50 days.",
-    "economic_impact": "Can devastate entire harvests; up to 100% crop loss in swarms.",
+    "life_cycle": "Eggs hatch in 10-14 days, lifecycle completes in 35-50 days, multiple generations in outbreak years.",
+    "economic_impact": "Can devastate entire harvests; up to 100% crop loss in swarms, critical in East Africa and Middle East.",
     "environmental_conditions": {
       "temperature": "25-35°C",
       "humidity": "Moderate",
       "soil_type": "Sandy"
-    }
+    },
+    "appearance": {
+      "color": ["yellow", "brown", "green"],
+      "size": ["large", "40-60mm adults"]
+    },
+    "synonyms": ["Schistocerca gregaria", "locust", "swarming locust"]
   },
   "japanese_beetle": {
-    "crops": ["soybean", "maize", "grape", "apple", "rose", "turfgrass"],
+    "crops": ["soybean", "maize", "grape", "apple", "rose", "turfgrass", "raspberry"],
     "regions": ["temperate"],
-    "symptoms": ["skeletonized leaves", "chewed flowers", "root damage by grubs"],
+    "symptoms": ["skeletonized leaves", "chewed flowers", "root damage by grubs", "defoliation"],
     "control_measures": {
-      "chemical": ["imidacloprid", "carbaryl", "chlorantraniliprole"],
-      "biological": ["Bacillus popilliae", "entomopathogenic nematodes", "Tiphia vernalis"],
-      "cultural": ["hand-picking", "use trap crops", "apply mulch"]
+      "chemical": ["imidacloprid", "carbaryl", "chlorantraniliprole", "acephate"],
+      "biological": ["Bacillus popilliae", "entomopathogenic nematodes (Heterorhabditis spp.)", "Tiphia vernalis"],
+      "cultural": ["hand-picking", "use trap crops (e.g., white clover)", "apply mulch"]
     },
     "life_cycle": "Eggs hatch in 10-14 days, grubs feed for 8-10 months, lifecycle completes in 1 year.",
-    "economic_impact": "Can cause 20-30% loss in grapes and turf; affects ornamental plants.",
+    "economic_impact": "Causes 20-30% loss in grapes and turf; affects ornamental plants and home gardens.",
     "environmental_conditions": {
       "temperature": "20-30°C",
       "humidity": "Moderate",
       "soil_type": "Loamy, well-drained"
-    }
+    },
+    "appearance": {
+      "color": ["metallic green", "bronze wings"],
+      "size": ["medium", "8-11mm adults"]
+    },
+    "synonyms": ["Popillia japonica", "Japanese scarab", "grub beetle"]
   },
   "codling_moth": {
-    "crops": ["apple", "pear", "walnut", "plum"],
+    "crops": ["apple", "pear", "walnut", "plum", "apricot"],
     "regions": ["temperate"],
-    "symptoms": ["tunneling in fruit", "frass at fruit entry", "larvae in core"],
+    "symptoms": ["tunneling in fruit", "frass at fruit entry", "larvae in core", "fruit drop"],
     "control_measures": {
-      "chemical": ["spinosad", "chlorantraniliprole", "phosmet"],
-      "biological": ["Trichogramma wasps", "Cydia pomonella granulovirus"],
-      "cultural": ["sanitation", "pheromone traps", "bagging fruit"]
+      "chemical": ["spinosad", "chlorantraniliprole", "phosmet", "azadirachtin"],
+      "biological": ["Trichogramma wasps", "Cydia pomonella granulovirus", "predatory bugs"],
+      "cultural": ["sanitation", "pheromone traps", "bagging fruit", "remove infested fruit"]
     },
     "life_cycle": "Eggs hatch in 6-14 days, larvae feed for 3-5 weeks, lifecycle completes in 45-60 days.",
-    "economic_impact": "Can cause 30-50% fruit loss in apples; affects export quality.",
+    "economic_impact": "Causes 30-50% fruit loss in apples and pears; affects export quality.",
     "environmental_conditions": {
       "temperature": "15-25°C",
       "humidity": "Moderate",
       "soil_type": "No specific preference"
-    }
+    },
+    "appearance": {
+      "color": ["gray", "brown"],
+      "size": ["small", "5-10mm larvae", "10-15mm adults"]
+    },
+    "synonyms": ["Cydia pomonella", "apple moth", "fruit moth"]
   },
   "european_corn_borer": {
-    "crops": ["maize", "pepper", "potato", "snap bean"],
+    "crops": ["maize", "pepper", "potato", "snap bean", "sorghum"],
     "regions": ["temperate"],
-    "symptoms": ["tunneling in stalks", "frass", "broken tassels", "holes in leaves"],
+    "symptoms": ["tunneling in stalks", "frass", "broken tassels", "holes in leaves", "damaged ears"],
     "control_measures": {
-      "chemical": ["spinosad", "lambda-cyhalothrin", "teflubenzuron"],
-      "biological": ["Trichogramma ostriniae", "Bacillus thuringiensis"],
+      "chemical": ["spinosad", "lambda-cyhalothrin", "teflubenzuron", "chlorantraniliprole"],
+      "biological": ["Trichogramma ostriniae", "Bacillus thuringiensis", "predatory beetles"],
       "cultural": ["destroy crop residues", "use Bt maize", "early planting"]
     },
     "life_cycle": "Eggs hatch in 4-9 days, larvae feed for 20-30 days, lifecycle completes in 40-60 days.",
-    "economic_impact": "Can cause 10-20% yield loss in maize; significant in non-Bt crops.",
+    "economic_impact": "Causes 10-20% yield loss in maize; significant in non-Bt crops and organic farming.",
     "environmental_conditions": {
       "temperature": "20-30°C",
       "humidity": "Moderate",
       "soil_type": "No specific preference"
-    }
+    },
+    "appearance": {
+      "color": ["cream", "brown larvae"],
+      "size": ["medium", "15-25mm larvae"]
+    },
+    "synonyms": ["Ostrinia nubilalis", "corn borer", "maize borer"]
   },
   "red_palm_weevil": {
-    "crops": ["palm", "coconut", "date palm"],
+    "crops": ["palm", "coconut", "date palm", "oil palm"],
     "regions": ["tropical", "subtropical"],
-    "symptoms": ["tunneling in trunk", "wilting fronds", "frass", "tree collapse"],
+    "symptoms": ["tunneling in trunk", "wilting fronds", "frass", "tree collapse", "chewed leaf bases"],
     "control_measures": {
-      "chemical": ["imidacloprid", "fipronil"],
-      "biological": ["Steinernema carpocapsae", "Beauveria bassiana"],
-      "cultural": ["sanitation", "pheromone traps", "remove infested trees"]
+      "chemical": ["imidacloprid", "fipronil", "chlorpyrifos"],
+      "biological": ["Steinernema carpocapsae", "Beauveria bassiana", "entomopathogenic fungi"],
+      "cultural": ["sanitation", "pheromone traps", "remove infested trees", "monitor with acoustic sensors"]
     },
     "life_cycle": "Eggs hatch in 3-7 days, larvae feed for 1-3 months, lifecycle completes in 4-6 months.",
-    "economic_impact": "Can kill palms, causing 10-20% plantation loss; affects date production.",
+    "economic_impact": "Kills palms, causing 10-20% plantation loss; affects date and coconut production.",
     "environmental_conditions": {
       "temperature": "25-35°C",
       "humidity": "High",
       "soil_type": "No specific preference"
-    }
+    },
+    "appearance": {
+      "color": ["red", "brown"],
+      "size": ["large", "30-50mm adults"]
+    },
+    "synonyms": ["Rhynchophorus ferrugineus", "palm weevil", "Asian palm weevil"]
   },
   "citrus_psylla": {
-    "crops": ["citrus", "orange", "lemon", "grapefruit"],
+    "crops": ["citrus", "orange", "lemon", "grapefruit", "lime"],
     "regions": ["tropical", "subtropical"],
-    "symptoms": ["leaf curling", "sooty mold", "stunted growth", "virus transmission"],
+    "symptoms": ["leaf curling", "sooty mold", "stunted growth", "virus transmission (citrus greening)", "yellow shoots"],
     "control_measures": {
-      "chemical": ["imidacloprid", "spirotetramat", "thiamethoxam"],
-      "biological": ["Tamarixia radiata", "ladybugs"],
-      "cultural": ["prune infested shoots", "monitor with sticky traps"]
+      "chemical": ["imidacloprid", "spirotetramat", "thiamethoxam", "dimethoate"],
+      "biological": ["Tamarixia radiata", "ladybugs", "parasitic wasps"],
+      "cultural": ["prune infested shoots", "monitor with yellow sticky traps", "maintain tree health"]
     },
-    "life_cycle": "Eggs hatch in 4-10 days, lifecycle completes in 20-40 days.",
-    "economic_impact": "Can cause 20-50% yield loss via citrus greening disease transmission.",
+    "life_cycle": "Eggs hatch in 4-10 days, lifecycle completes in 20-40 days, multiple generations per season.",
+    "economic_impact": "Causes 20-50% yield loss via citrus greening disease transmission; major threat to citrus industry.",
     "environmental_conditions": {
       "temperature": "20-30°C",
       "humidity": "High",
       "soil_type": "Well-drained"
-    }
+    },
+    "appearance": {
+      "color": ["brown", "green"],
+      "size": ["small", "2-4mm adults"]
+    },
+    "synonyms": ["Diaphorina citri", "Asian citrus psyllid", "citrus psyllid"]
   },
   "pink_bollworm": {
     "crops": ["cotton"],
     "regions": ["tropical", "subtropical"],
-    "symptoms": ["damaged bolls", "larvae in seeds", "reduced lint quality"],
+    "symptoms": ["damaged bolls", "larvae in seeds", "reduced lint quality", "boll rot"],
     "control_measures": {
-      "chemical": ["spinosad", "indoxacarb", "chlorantraniliprole"],
-      "biological": ["Trichogramma wasps", "Bacillus thuringiensis"],
-      "cultural": ["destroy crop residues", "use Bt cotton", "pheromone traps"]
+      "chemical": ["spinosad", "indoxacarb", "chlorantraniliprole", "pyrethroids"],
+      "biological": ["Trichogramma wasps", "Bacillus thuringiensis", "predatory bugs"],
+      "cultural": ["destroy crop residues", "use Bt cotton", "pheromone traps", "early harvest"]
     },
     "life_cycle": "Eggs hatch in 3-5 days, larvae feed for 10-14 days, lifecycle completes in 25-35 days.",
-    "economic_impact": "Can cause 20-40% yield loss in cotton; affects fiber quality.",
+    "economic_impact": "Causes 20-40% yield loss in cotton; affects fiber quality and export markets.",
     "environmental_conditions": {
       "temperature": "25-35°C",
       "humidity": "Moderate",
       "soil_type": "Well-drained"
-    }
+    },
+    "appearance": {
+      "color": ["pink larvae", "brown adults"],
+      "size": ["small", "5-10mm larvae", "10-12mm adults"]
+    },
+    "synonyms": ["Pectinophora gossypiella", "cotton bollworm", "pink worm"]
   },
   "coffee_berry_borer": {
     "crops": ["coffee"],
     "regions": ["tropical", "subtropical"],
-    "symptoms": ["holes in coffee berries", "larvae in beans", "reduced bean quality"],
+    "symptoms": ["holes in coffee berries", "larvae in beans", "reduced bean quality", "berry drop"],
     "control_measures": {
-      "chemical": ["endosulfan", "chlorpyrifos"],
-      "biological": ["Beauveria bassiana", "parasitic wasps"],
-      "cultural": ["sanitation", "strip picking", "use traps"]
+      "chemical": ["endosulfan", "chlorpyrifos", "cypermethrin"],
+      "biological": ["Beauveria bassiana", "parasitic wasps (Cephalonomia stephanoderis)", "entomopathogenic fungi"],
+      "cultural": ["sanitation", "strip picking", "use alcohol traps", "shade management"]
     },
     "life_cycle": "Eggs hatch in 4-9 days, larvae feed for 10-26 days, lifecycle completes in 28-35 days.",
-    "economic_impact": "Can cause 20-80% loss in coffee yield; affects export quality.",
+    "economic_impact": "Causes 20-80% loss in coffee yield; affects export quality and smallholder farmers.",
     "environmental_conditions": {
       "temperature": "20-30°C",
       "humidity": "High",
       "soil_type": "No specific preference"
-    }
+    },
+    "appearance": {
+      "color": ["black", "brown"],
+      "size": ["tiny", "1-2mm adults"]
+    },
+    "synonyms": ["Hypothenemus hampei", "coffee borer", "berry borer"]
   },
   "tomato_hornworm": {
     "crops": ["tomato", "pepper", "eggplant", "potato"],
     "regions": ["temperate", "subtropical"],
-    "symptoms": ["defoliation", "large green larvae", "frass", "chewed stems"],
+    "symptoms": ["defoliation", "large green larvae", "frass", "chewed stems", "fruit damage"],
     "control_measures": {
-      "chemical": ["spinosad", "carbaryl", "methomyl"],
+      "chemical": ["spinosad", "carbaryl", "methomyl", "chlorantraniliprole"],
       "biological": ["Trichogramma wasps", "Cotesia congregata", "Bacillus thuringiensis"],
-      "cultural": ["hand-picking", "use companion plants", "tillage"]
+      "cultural": ["hand-picking", "use companion plants (e.g., marigolds)", "tillage"]
     },
     "life_cycle": "Eggs hatch in 5-7 days, larvae feed for 3-4 weeks, lifecycle completes in 40-50 days.",
-    "economic_impact": "Can cause 20-40% yield loss in tomatoes; affects home gardens.",
+    "economic_impact": "Causes 20-40% yield loss in tomatoes; significant in home gardens and organic farms.",
     "environmental_conditions": {
       "temperature": "20-30°C",
       "humidity": "Moderate",
       "soil_type": "No specific preference"
-    }
+    },
+    "appearance": {
+      "color": ["green larvae", "gray-brown adults"],
+      "size": ["large", "50-100mm larvae", "40-50mm adults"]
+    },
+    "synonyms": ["Manduca quinquemaculata", "hornworm", "tomato worm"]
   },
   "root_knot_nematode": {
-    "crops": ["tomato", "potato", "carrot", "soybean", "cotton", "pepper"],
+    "crops": ["tomato", "potato", "carrot", "soybean", "cotton", "pepper", "cucumber"],
     "regions": ["tropical", "subtropical", "temperate"],
-    "symptoms": ["root galls", "wilting", "stunted growth", "yellowing leaves"],
+    "symptoms": ["root galls", "wilting", "stunted growth", "yellowing leaves", "reduced root system"],
     "control_measures": {
-      "chemical": ["oxamyl", "fenamiphos"],
-      "biological": ["Paecilomyces lilacinus", "Bacillus firmus"],
-      "cultural": ["crop rotation with cereals", "use resistant varieties", "solarisation"]
+      "chemical": ["oxamyl", "fenamiphos", "ethoprop"],
+      "biological": ["Paecilomyces lilacinus", "Bacillus firmus", "Pasteuria penetrans"],
+      "cultural": ["crop rotation with cereals", "use resistant varieties", "soil solarization", "add organic matter"]
     },
     "life_cycle": "Eggs hatch in 10-14 days, lifecycle completes in 20-40 days depending on temperature.",
-    "economic_impact": "Can cause 20-50% yield loss in vegetables; significant in sandy soils.",
+    "economic_impact": "Causes 20-50% yield loss in vegetables; significant in sandy soils and warm climates.",
     "environmental_conditions": {
       "temperature": "20-30°C",
       "humidity": "Moderate",
       "soil_type": "Sandy, loamy"
-    }
+    },
+    "appearance": {
+      "color": ["transparent", "white"],
+      "size": ["microscopic", "0.5-1mm"]
+    },
+    "synonyms": ["Meloidogyne spp.", "nematode", "root nematode"]
+  },
+  "brown_marmorated_stink_bug": {
+    "crops": ["apple", "peach", "soybean", "corn", "tomato", "grape"],
+    "regions": ["temperate", "subtropical"],
+    "symptoms": ["fruit damage", "cat-facing", "sap sucking", "discoloration", "seed loss"],
+    "control_measures": {
+      "chemical": ["pyrethroids", "neonicotinoids", "bifenthrin", "dinotefuran"],
+      "biological": ["Trissolcus japonicus", "predatory bugs", "parasitic wasps"],
+      "cultural": ["trap crops (e.g., sunflower)", "monitor with pheromone traps", "remove weeds"]
+    },
+    "life_cycle": "Eggs hatch in 4-7 days, lifecycle completes in 40-60 days, one to two generations per year.",
+    "economic_impact": "Causes 20-40% fruit loss in orchards; significant in apples and peaches.",
+    "environmental_conditions": {
+      "temperature": "15-30°C",
+      "humidity": "Moderate",
+      "soil_type": "No specific preference"
+    },
+    "appearance": {
+      "color": ["brown", "gray", "white bands"],
+      "size": ["medium", "12-17mm adults"]
+    },
+    "synonyms": ["Halyomorpha halys", "stink bug", "brown stink bug"]
+  },
+  "white_grub": {
+    "crops": ["maize", "sugarcane", "turfgrass", "potato", "soybean", "pasture"],
+    "regions": ["temperate", "subtropical"],
+    "symptoms": ["root damage", "wilting", "stunted growth", "irregular patches in turf", "larvae in soil"],
+    "control_measures": {
+      "chemical": ["imidacloprid", "chlorantraniliprole", "thiamethoxam"],
+      "biological": ["entomopathogenic nematodes", "Bacillus popilliae", "Metarhizium anisopliae"],
+      "cultural": ["crop rotation", "deep tillage", "use resistant grasses in turf"]
+    },
+    "life_cycle": "Eggs hatch in 10-20 days, larvae feed for 1-3 years, lifecycle completes in 1-4 years.",
+    "economic_impact": "Causes 10-30% yield loss in maize and turf; affects root crops and pastures.",
+    "environmental_conditions": {
+      "temperature": "15-25°C",
+      "humidity": "High",
+      "soil_type": "Loamy, organic-rich"
+    },
+    "appearance": {
+      "color": ["white", "cream"],
+      "size": ["medium", "10-30mm larvae"]
+    },
+    "synonyms": ["Phyllophaga spp.", "grub", "scarab larvae"]
+  },
+  "aphid_lion": {
+    "crops": ["beneficial insect", "not a pest"],
+    "regions": ["tropical", "temperate", "subtropical"],
+    "symptoms": ["none (beneficial)", "preys on aphids, mealybugs, and small insects"],
+    "control_measures": {
+      "chemical": ["none"],
+      "biological": ["encourage populations", "release lacewing larvae"],
+      "cultural": ["plant nectar sources", "avoid broad-spectrum pesticides"]
+    },
+    "life_cycle": "Eggs hatch in 3-6 days, larvae feed for 2-3 weeks, lifecycle completes in 25-35 days.",
+    "economic_impact": "Beneficial; reduces pest populations, especially aphids, by up to 70% in some crops.",
+    "environmental_conditions": {
+      "temperature": "20-30°C",
+      "humidity": "Moderate",
+      "soil_type": "No specific preference"
+    },
+    "appearance": {
+      "color": ["green larvae", "brown adults"],
+      "size": ["small", "5-10mm larvae", "15-20mm adults"]
+    },
+    "synonyms": ["Chrysoperla spp.", "lacewing larvae", "green lacewing"]
   }
 }
