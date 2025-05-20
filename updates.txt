@@ -4,3 +4,4 @@ python -m nltk.downloader punkt wordnet averaged_perceptron_tagger
 pip install fastapi uvicorn pydantic sentence-transformers textblob nltk torch
 pip install fastapi uvicorn sentence-transformers textblob nltk autocorrect rapidfuzz numpy pydantic
 python -m textblob.download_corpora
+pip install fastapi uvicorn sentence-transformers textblob nltk rapidfuzz python-Levenshtein pyyaml translate

@@ -1,15 +1,10 @@
-fastapi 
-uvicorn 
-pydantic 
-spacy 
+fastapi
+uvicorn
+sentence-transformers
+textblob
 nltk
-
-# google-generativeai>=0.5.0
-# python-dotenv>=1.0.0
-# fastapi>=0.115.0
-# uvicorn>=0.30.0
-# pydantic>=2.0.0
-
-# bash
-# google-generativeai>=0.5.0
-# python-dotenv>=1.0.0
+rapidfuzz
+python-Levenshtein
+pyyaml
+numpy
+autocorrect

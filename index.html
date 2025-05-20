@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pest Identification Chat</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             background: linear-gradient(to bottom, #e7f3e4, #c8e0c5);
@@ -12,7 +13,7 @@
             font-family: 'Inter', sans-serif;
         }
         .chat-container {
-            max-height: calc(100vh - 200px);
+            max-height: calc(100vh - 250px);
             overflow-y: auto;
             scroll-behavior: smooth;
         }
@@ -46,7 +47,7 @@
             position: sticky;
             bottom: 0;
         }
-        #send-button:hover {
+        #send-button:hover, #clear-button:hover {
             background-color: #45a049;
         }
         .report-content {
@@ -58,10 +59,30 @@
             margin-top: 12px;
             margin-bottom: 6px;
             font-size: 1.1em;
+            cursor: pointer;
         }
         .report-subitem {
             margin-left: 16px;
             margin-bottom: 4px;
+        }
+        .collapsible {
+            display: none;
+        }
+        .collapsible.active {
+            display: block;
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4caf50;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 10px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
         ::-webkit-scrollbar {
             width: 8px;
@@ -91,7 +112,7 @@
         <div class="input-area flex items-center space-x-2">
             <textarea
                 id="message-input"
-                placeholder="Describe the pest issue..."
+                placeholder="Describe the pest issue (e.g., 'Tomato leaves are yellowing with tiny white insects')"
                 class="flex-1 p-2 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-green-500"
                 rows="2"
             ></textarea>
@@ -103,6 +124,12 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
                 </svg>
             </button>
+            <button
+                id="clear-button"
+                class="bg-green-600 text-white p-2 rounded-lg hover:bg-green-700 transition"
+            >
+                Clear
+            </button>
         </div>
     </div>
 
@@ -110,14 +137,14 @@
         const chatContainer = document.getElementById('chat-container');
         const messageInput = document.getElementById('message-input');
         const sendButton = document.getElementById('send-button');
+        const clearButton = document.getElementById('clear-button');
         const API_URL = 'http://localhost:8000/identify-pest';
+        let chartInstance = null;
 
-        // Scroll to bottom of chat
         function scrollToBottom() {
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        // Add message to chat
         function addMessage(content, type = 'bot') {
             const messageDiv = document.createElement('div');
             messageDiv.className = `chat-message ${type === 'user' ? 'user-message' : type === 'error' ? 'error-message' : 'bot-message'}`;
@@ -126,12 +153,25 @@
             scrollToBottom();
         }
 
-        // Format report content with bold headers and no asterisks
+        function addLoadingSpinner() {
+            const spinnerDiv = document.createElement('div');
+            spinnerDiv.id = 'loading-spinner';
+            spinnerDiv.className = 'loading-spinner';
+            chatContainer.appendChild(spinnerDiv);
+            scrollToBottom();
+            return spinnerDiv;
+        }
+
+        function removeLoadingSpinner() {
+            const spinner = document.getElementById('loading-spinner');
+            if (spinner) spinner.remove();
+        }
+
         function formatReport(report) {
-            // Remove markdown asterisks and split into lines
             const cleanReport = report.replace(/\*\*/g, '').replace(/:\s*$/, ':');
             const lines = cleanReport.split('\n').filter(line => line.trim());
             let formatted = '';
+            let currentSection = '';
             let currentIndent = 0;
 
             for (const line of lines) {
@@ -141,88 +181,125 @@
                     continue;
                 }
 
-                // Identify headers (standalone titles or lines ending with a colon)
                 const isHeader = trimmedLine.match(/^[A-Z][a-zA-Z\s]+(:)?$/) || trimmedLine === 'Pest Identification Report';
                 if (isHeader) {
-                    formatted += `<div class="report-header">${trimmedLine.replace(/:$/, '')}</div>`;
-                    currentIndent = 16; // Indent subsequent subitems
+                    formatted += `<div class="report-header" onclick="toggleSection(this)">${trimmedLine.replace(/:$/, '')}</div>`;
+                    currentSection = trimmedLine.replace(/:$/, '');
+                    formatted += `<div class="collapsible" id="${currentSection.replace(/\s/g, '-')}-content">`;
+                    currentIndent = 16;
                 } else {
-                    // Non-header lines as subitems
                     formatted += `<div class="report-subitem" style="margin-left: ${currentIndent}px;">${trimmedLine}</div>`;
-                    // Reset indent after non-indented lines (e.g., after a section)
                     if (!trimmedLine.startsWith('  ')) {
+                        formatted += '</div>'; // Close collapsible section
                         currentIndent = 0;
                     }
                 }
             }
-
+            if (currentIndent > 0) formatted += '</div>'; // Ensure last section is closed
             return `<div class="report-content">${formatted}</div>`;
         }
 
-        // Handle API request
+        function toggleSection(header) {
+            const content = header.nextElementSibling;
+            if (content && content.classList.contains('collapsible')) {
+                content.classList.toggle('active');
+            }
+        }
+
+        function renderChart(chartData) {
+            if (chartInstance) chartInstance.destroy();
+            const canvas = document.createElement('canvas');
+            canvas.id = 'pest-chart';
+            canvas.style.maxHeight = '300px';
+            const chartContainer = document.createElement('div');
+            chartContainer.className = 'bot-message';
+            chartContainer.appendChild(canvas);
+            chatContainer.appendChild(chartContainer);
+            chartInstance = new Chart(canvas, chartData);
+            scrollToBottom();
+        }
+
         async function sendMessage() {
             const description = messageInput.value.trim();
             if (!description) {
-            addMessage('Please enter a description.', 'error');
-            return;
+                addMessage('Please enter a description.', 'error');
+                return;
             }
 
             addMessage(description, 'user');
             messageInput.value = '';
+            const spinner = addLoadingSpinner();
 
             try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ description })
-            });
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ description })
+                });
 
-            const data = await response.json();
-            console.log('API Response:', JSON.stringify(data, null, 2));
+                const data = await response.json();
+                removeLoadingSpinner();
 
-            if (response.ok) {
-                const content = `
-                <strong>Identified Pest:</strong> ${data.pest}<br>
-                <strong>Possible Pests:</strong> ${data.text_result.pests.map(p => `${p.pest} (${(p.confidence * 100).toFixed(0)}%)`).join(', ')}<br><br>
-                <strong>Detailed Report:</strong><br>
-                ${formatReport(data.report)}
-                `;
-                addMessage(content);
-            } else {
-                let errorContent = 'An unknown error occurred.';
-                if (data.detail && typeof data.detail === 'object') {
-                if (data.detail.error) {
-                    errorContent = data.detail.error;
-                }
-                if (data.detail.hint) {
-                    errorContent += `<br>Hint: ${data.detail.hint.replace(/\n/g, ' ')}`;
-                }
-                } else if (data.detail && typeof data.detail === 'string') {
-                try {
-                    const parsedDetail = JSON.parse(data.detail);
-                    if (parsedDetail.error) {
-                    errorContent = parsedDetail.error;
+                if (response.ok) {
+                    const content = `
+                        <strong>Identified Pest:</strong> ${data.pest}<br>
+                        <strong>Possible Pests:</strong> ${data.text_result.pests.map(p => `${p.pest} (${(p.confidence * 100).toFixed(0)}%)`).join(', ')}<br><br>
+                        <strong>Detailed Report:</strong><br>
+                        ${formatReport(data.report)}
+                    `;
+                    addMessage(content);
+                    if (data.chart) renderChart(data.chart);
+                } else {
+                    let errorContent = 'An unknown error occurred.';
+                    if (data.detail && typeof data.detail === 'object') {
+                        if (data.detail.error) {
+                            errorContent = data.detail.error;
+                        }
+                        if (data.detail.hint) {
+                            errorContent += `<br><strong>Hint:</strong> ${data.detail.hint.replace(/\n/g, '<br>')}`;
+                            messageInput.placeholder = data.detail.hint.split('\n')[0];
+                        }
+                    } else if (data.detail && typeof data.detail === 'string') {
+                        try {
+                            const parsedDetail = JSON.parse(data.detail);
+                            if (parsedDetail.error) {
+                                errorContent = parsedDetail.error;
+                            }
+                            if (parsedDetail.hint) {
+                                errorContent += `<br><strong>Hint:</strong> ${parsedDetail.hint.replace(/\n/g, '<br>')}`;
+                                messageInput.placeholder = parsedDetail.hint.split('\n')[0];
+                            }
+                        } catch (e) {
+                            errorContent = data.detail;
+                        }
                     }
-                    if (parsedDetail.hint) {
-                    errorContent += `<br>Hint: ${parsedDetail.hint.replace(/\n/g, ' ')}`;
-                    }
-                } catch (e) {
-                    errorContent = data.detail;
+                    addMessage(errorContent, 'error');
                 }
-                }
-                addMessage(errorContent, 'error');
-            }
             } catch (error) {
-            console.error('Fetch Error:', error);
-            addMessage(
-                `Unable to connect to the server at ${API_URL}. Please ensure the API is running and accessible on localhost:8000.`,
-                'error'
-            );
+                console.error('Fetch Error:', error);
+                removeLoadingSpinner();
+                addMessage(
+                    `Unable to connect to the server at ${API_URL}. Please ensure the API is running and accessible on localhost:8000.`,
+                    'error'
+                );
             }
         }
 
-        // Event listeners
+        function clearChat() {
+            while (chatContainer.children.length > 1) {
+                chatContainer.removeChild(chatContainer.lastChild);
+            }
+            if (chartInstance) {
+                chartInstance.destroy();
+                chartInstance = null;
+            }
+            messageInput.value = '';
+            messageInput.placeholder = "Describe the pest issue (e.g., 'Tomato leaves are yellowing with tiny white insects')";
+            scrollToBottom();
+        }
+
         sendButton.addEventListener('click', sendMessage);
+        clearButton.addEventListener('click', clearChat);
         messageInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -230,7 +307,6 @@
             }
         });
 
-        // Initial scroll
         scrollToBottom();
     </script>
 </body>
