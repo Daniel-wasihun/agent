@@ -19,40 +19,44 @@ The journey is modeled as a graph with **14 cities** and their connections:
 - Big City, Benghazi, Petra, Kinshasa, Giza, Lagos, Varanasi, Larnaca, Luxor, Cadiz, Cairo, Ife, Benin, Addis Ababa
 
 ### Connections (Actual Distances)
-- Big City → Benghazi: 100
-- Big City → Petra: 140
-- Big City → Kinshasa: 90
-- Big City → Giza: 330
-- Big City → Lagos: 98
-- Big City → Varanasi: 670
-- Benghazi → Larnaca: 60
-- Benghazi → Luxor: 420
-- Petra → Luxor: 210
-- Petra → Cadiz: 200
-- Kinshasa → Giza: 320
-- Kinshasa → Cairo: 420
-- Giza → Ife: 360
-- Giza → Benin: 90
-- Lagos → Addis Ababa: 120
-- Cairo → Ife: 90
-- Ife → Benin: 90
-- Addis Ababa → Benin: 110
+| From City   | To City     | Actual Distance |
+|-------------|-------------|-----------------|
+| Big City    | Benghazi    | 100             |
+| Big City    | Petra       | 140             |
+| Big City    | Kinshasa    | 90              |
+| Big City    | Giza        | 330             |
+| Big City    | Lagos       | 98              |
+| Big City    | Varanasi    | 670             |
+| Benghazi    | Larnaca     | 60              |
+| Benghazi    | Luxor       | 420             |
+| Petra       | Luxor       | 210             |
+| Petra       | Cadiz       | 200             |
+| Kinshasa    | Giza        | 320             |
+| Kinshasa    | Cairo       | 420             |
+| Giza        | Ife         | 360             |
+| Giza        | Benin       | 90              |
+| Lagos       | Addis Ababa | 120             |
+| Cairo       | Ife         | 90              |
+| Ife         | Benin       | 90              |
+| Addis Ababa | Benin       | 110             |
 
 ### Heuristic Values (Estimated Distances to Benin)
-- Big City: 500
-- Benghazi: 600
-- Petra: 600
-- Kinshasa: 400
-- Giza: 200
-- Lagos: 400
-- Varanasi: 1000
-- Larnaca: 900
-- Luxor: 700
-- Cadiz: 800
-- Cairo: 600
-- Ife: 400
-- Benin: 0
-- Addis Ababa: 200
+| City        | Heuristic Distance to Benin |
+|-------------|----------------------------|
+| Big City    | 500                        |
+| Benghazi    | 600                        |
+| Petra       | 600                        |
+| Kinshasa    | 400                        |
+| Giza        | 200                        |
+| Lagos       | 400                        |
+| Varanasi    | 1000                       |
+| Larnaca     | 900                        |
+| Luxor       | 700                        |
+| Cadiz       | 800                        |
+| Cairo       | 600                        |
+| Ife         | 400                        |
+| Benin       | 0                          |
+| Addis Ababa | 200                        |
 
 **Start**: Big City  
 **Goal for Persons 2, 3, 4**: Benin  
@@ -74,7 +78,7 @@ The journey is modeled as a graph with **14 cities** and their connections:
     - Expanded nodes: Big City(0), Benghazi(100), Larnaca(160), Luxor(520), Petra(140), Luxor(350), Cadiz(340), Kinshasa(90), Cairo(510), Ife(510), Giza(410), Giza(330), Benin(420)
     - Path: Big City → Giza → Benin, cost 420
     - Nodes expanded: 13
-- **Rationale**: Random selection of a nearby city is sufficient for hiding.
+- **Conclusion**:Random selection of a nearby city is sufficient for hiding using BFS.
 
 ### 🌐 Person 2: Greedy Best-First Search
 - **Information**: Heuristic distances only.
