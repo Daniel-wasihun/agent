@@ -1,5 +1,4 @@
-% Pest Identification Program (deq.pl)
-% Enhanced CLI interface for pest identification and report generation
+% Pest Identification Program 
 
 :- use_module(library(lists)).
 :- use_module(library(filesex)).

@@ -1,3 +1,6 @@
+# First of all
+### pip install -r requirement.txt
+
 # To run with cmd use python main.py
 # To use REST API  use =>  uvicorn web:app -- host 0.0.0.0 --reload and the open the index.html
 
